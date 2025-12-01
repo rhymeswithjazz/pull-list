@@ -1,0 +1,38 @@
+[project]
+name = "pull-list"
+version = "0.1.0"
+description = "Comic book pull-list dashboard for Mylar3 and Komga"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.5",
+    "uvicorn[standard]>=0.32.1",
+    "python-multipart>=0.0.17",
+    "sqlalchemy>=2.0.36",
+    "aiosqlite>=0.20.0",
+    "greenlet>=3.1.0",
+    "httpx>=0.28.0",
+    "jinja2>=3.1.4",
+    "apscheduler>=3.10.4",
+    "pydantic-settings>=2.6.1",
+    "python-dateutil>=2.9.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.8.0",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

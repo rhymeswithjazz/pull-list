@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Pull-List{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <div>
+        <h1 class="text-3xl font-bold text-white">Settings</h1>
+        <p class="text-gray-400 mt-1">Manage which series to include in your weekly pull-list</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Add Series -->
+        <div class="bg-gray-800 rounded-lg p-6">
+            <h2 class="text-xl font-semibold text-white mb-4">Add Series</h2>
+            <p class="text-gray-400 text-sm mb-4">Search your Komga library to add series to your pull-list</p>
+
+            <form hx-post="/api/series/search" hx-target="#search-results" hx-indicator="#search-spinner">
+                <div class="flex gap-2">
+                    <input
+                        type="text"
+                        name="query"
+                        placeholder="Search series name..."
+                        class="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-comic-yellow"
+                        required
+                    >
+                    <button
+                        type="submit"
+                        class="px-4 py-2 bg-comic-yellow text-gray-900 font-semibold rounded-lg hover:bg-yellow-400 transition-colors inline-flex items-center"
+                    >
+                        <span id="search-spinner" class="htmx-indicator mr-2">
+                            <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </span>
+                        Search
+                    </button>
+                </div>
+            </form>
+
+            <div id="search-results" class="mt-4">
+                <!-- Search results will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Tracked Series -->
+        <div class="bg-gray-800 rounded-lg p-6">
+            <h2 class="text-xl font-semibold text-white mb-4">Tracked Series</h2>
+            <p class="text-gray-400 text-sm mb-4">
+                These series will be included in your weekly pull-list.
+                Toggle to pause tracking without removing.
+            </p>
+
+            <div id="tracked-series-list">
+                {% include "partials/tracked_series_list.html" %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Info -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <h2 class="text-xl font-semibold text-white mb-4">Schedule</h2>
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-300">
+                    Pull-lists are generated automatically on the configured schedule.
+                </p>
+                {% if next_run %}
+                <p class="text-gray-400 mt-1">
+                    Next scheduled run: <span class="text-comic-yellow">{{ next_run }}</span>
+                </p>
+                {% endif %}
+            </div>
+            <div class="text-gray-400 text-sm">
+                <p>Configure schedule via environment variables:</p>
+                <code class="block mt-1 text-xs bg-gray-900 p-2 rounded">
+                    SCHEDULE_DAY_OF_WEEK=wed<br>
+                    SCHEDULE_HOUR=10<br>
+                    SCHEDULE_MINUTE=0
+                </code>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

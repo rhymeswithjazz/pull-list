@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+ENV/
+env/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.docker/
+.dockerignore
+
+# Documentation
+*.md
+docs/
+
+# Tests
+tests/
+pytest.ini
+.coverage
+htmlcov/
+
+# Database (will be created in container)
+*.db
+data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

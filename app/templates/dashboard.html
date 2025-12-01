@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Pull-List{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with week navigation and action button -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <!-- Week navigation -->
+            <div class="flex items-center gap-3 mb-1">
+                {% if prev_week_id %}
+                <a href="/?week={{ prev_week_id }}"
+                   class="p-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors"
+                   title="Previous week">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </a>
+                {% else %}
+                <span class="p-1.5 rounded-lg bg-gray-800 text-gray-600 cursor-not-allowed">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </span>
+                {% endif %}
+
+                <h1 class="text-3xl font-bold text-white">
+                    {% if is_current_week %}
+                    This Week's Pull-List
+                    {% else %}
+                    Pull-List
+                    {% endif %}
+                </h1>
+
+                {% if next_week_id %}
+                <a href="/?week={{ next_week_id }}"
+                   class="p-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors"
+                   title="Next week">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </a>
+                {% elif not is_current_week %}
+                <a href="/"
+                   class="p-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors"
+                   title="Current week">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </a>
+                {% else %}
+                <span class="p-1.5 rounded-lg bg-gray-800 text-gray-600 cursor-not-allowed">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </span>
+                {% endif %}
+            </div>
+
+            <p class="text-gray-400">
+                <span class="text-comic-yellow">{{ week_display }}</span>
+                · {{ books_count }} book{{ 's' if books_count != 1 else '' }} from {{ tracked_count }} tracked series
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            {% if week_readlist %}
+            <a
+                href="{{ komga_url }}/readlists/{{ week_readlist.readlist_id }}"
+                target="_blank"
+                class="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-500 transition-colors"
+            >
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                </svg>
+                View in Komga
+            </a>
+            {% endif %}
+
+            {% if is_current_week %}
+            <button
+                hx-post="/api/run-now"
+                hx-target="#pull-list-container"
+                hx-swap="innerHTML"
+                hx-indicator="#run-spinner"
+                class="inline-flex items-center px-4 py-2 bg-comic-yellow text-gray-900 font-semibold rounded-lg hover:bg-yellow-400 transition-colors"
+            >
+                <span id="run-spinner" class="htmx-indicator mr-2">
+                    <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </span>
+                <span>Generate Now</span>
+            </button>
+            {% else %}
+            <a href="/" class="inline-flex items-center px-4 py-2 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors">
+                ← Back to Current Week
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Pull list grid -->
+    <div id="pull-list-container">
+        {% include "partials/pull_list_grid.html" %}
+    </div>
+</div>
+{% endblock %}

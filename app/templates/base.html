@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Pull-List{% endblock %}</title>
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        comic: {
+                            yellow: '#FCD34D',
+                            red: '#EF4444',
+                            blue: '#3B82F6',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- Custom styles -->
+    <style>
+        .htmx-request .htmx-indicator {
+            display: inline-block;
+        }
+        .htmx-indicator {
+            display: none;
+        }
+
+        /* Comic book cover styling */
+        .cover-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .cover-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Status badge pulse animation */
+        @keyframes pulse-badge {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .badge-pulse {
+            animation: pulse-badge 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="h-full bg-gray-900 text-gray-100">
+    <div class="min-h-full">
+        <!-- Navigation -->
+        <nav class="bg-gray-800 border-b border-gray-700">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div class="flex h-16 items-center justify-between">
+                    <div class="flex items-center">
+                        <a href="/" class="flex items-center space-x-2">
+                            <span class="text-2xl">📚</span>
+                            <span class="text-xl font-bold text-comic-yellow">Pull-List</span>
+                        </a>
+                        <div class="ml-10 flex items-baseline space-x-4">
+                            <a href="/" class="px-3 py-2 rounded-md text-sm font-medium {% if request.url.path == '/' or request.url.path.startswith('/?') %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">
+                                Dashboard
+                            </a>
+                            <a href="/logs" class="px-3 py-2 rounded-md text-sm font-medium {% if request.url.path == '/logs' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">
+                                Logs
+                            </a>
+                            <a href="/settings" class="px-3 py-2 rounded-md text-sm font-medium {% if request.url.path == '/settings' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">
+                                Settings
+                            </a>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <!-- Status indicators -->
+                        <div hx-get="/api/status" hx-trigger="load, every 60s" hx-swap="innerHTML">
+                            <span class="text-gray-500 text-sm">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main>
+            <div class="mx-auto max-w-7xl py-6 px-4 sm:px-6 lg:px-8">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 border-t border-gray-700 mt-auto">
+            <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center text-sm text-gray-400">
+                    <span>Current Week: {{ week_id }}</span>
+                    {% if next_run %}
+                    <span>Next scheduled run: {{ next_run }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

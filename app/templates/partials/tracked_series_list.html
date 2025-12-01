@@ -1,0 +1,54 @@
+{% if tracked_series %}
+<ul class="space-y-2">
+    {% for series in tracked_series %}
+    <li class="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg {% if not series.is_active %}opacity-60{% endif %}">
+        <div class="flex-1 min-w-0">
+            <p class="font-medium text-white truncate">{{ series.name }}</p>
+            {% if series.publisher %}
+            <p class="text-xs text-gray-400">{{ series.publisher }}</p>
+            {% endif %}
+        </div>
+        <div class="flex items-center gap-2 ml-4">
+            <!-- Toggle button -->
+            <button
+                hx-post="/api/series/{{ series.id }}/toggle"
+                hx-target="#tracked-series-list"
+                hx-swap="innerHTML"
+                class="p-2 rounded-lg transition-colors {% if series.is_active %}bg-green-600 hover:bg-green-700{% else %}bg-gray-600 hover:bg-gray-500{% endif %}"
+                title="{% if series.is_active %}Pause tracking{% else %}Resume tracking{% endif %}"
+            >
+                {% if series.is_active %}
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                {% else %}
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                {% endif %}
+            </button>
+
+            <!-- Delete button -->
+            <button
+                hx-delete="/api/series/{{ series.id }}"
+                hx-target="#tracked-series-list"
+                hx-swap="innerHTML"
+                hx-confirm="Remove '{{ series.name }}' from tracking?"
+                class="p-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition-colors"
+                title="Remove from tracking"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+            </button>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<div class="text-center py-8">
+    <span class="text-4xl mb-2 block">📋</span>
+    <p class="text-gray-400">No series tracked yet</p>
+    <p class="text-gray-500 text-sm">Search and add series from your Komga library</p>
+</div>
+{% endif %}

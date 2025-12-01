@@ -1,0 +1,49 @@
+# Docker Compose for production deployment
+# Use this file with: docker compose -f docker-compose.prod.yml up -d
+#
+# For Portainer stack deployment, copy this content directly into the
+# stack editor and configure environment variables in the Portainer UI.
+
+services:
+  pull-list:
+    image: ${DOCKER_REGISTRY:-}/pull-list:${TAG:-latest}
+    container_name: pull-list
+    ports:
+      - "8000:8000"
+    environment:
+      # Mylar3 settings - update these for your network
+      - MYLAR_URL=${MYLAR_URL:-http://mylar:8090}
+      - MYLAR_API_KEY=${MYLAR_API_KEY}
+      # Komga settings - update these for your network
+      - KOMGA_URL=${KOMGA_URL:-http://komga:25600}
+      - KOMGA_USERNAME=${KOMGA_USERNAME}
+      - KOMGA_PASSWORD=${KOMGA_PASSWORD}
+      - KOMGA_API_KEY=${KOMGA_API_KEY}
+      # App settings
+      - DATABASE_URL=sqlite+aiosqlite:///./data/pulllist.db
+      - SECRET_KEY=${SECRET_KEY}
+      # Schedule settings (Wednesday at 10am by default - new comic book day)
+      - SCHEDULE_DAY_OF_WEEK=${SCHEDULE_DAY_OF_WEEK:-wed}
+      - SCHEDULE_HOUR=${SCHEDULE_HOUR:-10}
+      - SCHEDULE_MINUTE=${SCHEDULE_MINUTE:-0}
+      - TIMEZONE=${TIMEZONE:-America/New_York}
+    volumes:
+      - pulllist-data:/app/data
+    networks:
+      - comics
+    restart: unless-stopped
+    labels:
+      # Optional: Traefik labels for reverse proxy
+      # - "traefik.enable=true"
+      # - "traefik.http.routers.pulllist.rule=Host(`pulllist.yourdomain.com`)"
+      # - "traefik.http.services.pulllist.loadbalancer.server.port=8000"
+
+volumes:
+  pulllist-data:
+    driver: local
+
+networks:
+  comics:
+    external: true
+    # If your Mylar and Komga are on a custom network, specify it here
+    # Otherwise, remove the 'external: true' and let Docker create one

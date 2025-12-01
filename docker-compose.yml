@@ -1,0 +1,38 @@
+# Docker Compose for local development
+# For production, use docker-compose.prod.yml or deploy directly to Portainer
+
+services:
+  pull-list:
+    build: .
+    container_name: pull-list
+    ports:
+      - "8000:8000"
+    environment:
+      # Mylar3 settings
+      - MYLAR_URL=${MYLAR_URL:-http://mylar:8090}
+      - MYLAR_API_KEY=${MYLAR_API_KEY}
+      # Komga settings
+      - KOMGA_URL=${KOMGA_URL:-http://komga:25600}
+      - KOMGA_USERNAME=${KOMGA_USERNAME}
+      - KOMGA_PASSWORD=${KOMGA_PASSWORD}
+      - KOMGA_API_KEY=${KOMGA_API_KEY}
+      # App settings
+      - DATABASE_URL=sqlite+aiosqlite:///./data/pulllist.db
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      # Schedule settings
+      - SCHEDULE_DAY_OF_WEEK=${SCHEDULE_DAY_OF_WEEK:-wed}
+      - SCHEDULE_HOUR=${SCHEDULE_HOUR:-10}
+      - SCHEDULE_MINUTE=${SCHEDULE_MINUTE:-0}
+      - TIMEZONE=${TIMEZONE:-America/New_York}
+    volumes:
+      - pulllist-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  pulllist-data:
