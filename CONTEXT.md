@@ -45,9 +45,11 @@ Pull-List is a comic book pull-list dashboard that integrates with self-hosted M
 │  ├── Models (SQLAlchemy)                                    │
 │  │   ├── TrackedSeries                                      │
 │  │   ├── PullListRun                                        │
-│  │   └── WeeklyBook                                         │
+│  │   ├── WeeklyBook                                         │
+│  │   ├── User, MagicLinkToken                               │
+│  │   └── NotificationLog                                    │
 │  └── Scheduler (APScheduler)                                │
-│       └── Weekly cron job                                   │
+│       └── Daily cron job (configurable)                     │
 ├─────────────────────────────────────────────────────────────┤
 │  External Services                                           │
 │  ├── Komga API (required)                                   │
@@ -84,6 +86,9 @@ pull-list/
 │       ├── dashboard.html
 │       ├── login.html           # Login page
 │       ├── setup.html           # Initial setup page
+│       ├── forgot_password.html # Password reset request
+│       ├── reset_password.html  # Password reset form
+│       ├── logs.html            # Run history + status lights
 │       ├── settings.html
 │       └── partials/
 │           ├── pull_list_grid.html
@@ -117,6 +122,22 @@ pull-list/
 
 ## Recent Major Changes
 
+### 2025-12-01 - Email Notifications & Password Reset
+- **What**: Added email notifications for new pull-lists and password reset flow
+- **Why**: Get notified when comics are available; recover forgotten passwords
+- **Impact**:
+  - Receive one email per week when new comics first appear
+  - Users can reset passwords via email link
+- **Changes**:
+  - New model: `NotificationLog` tracks sent notifications per week
+  - Added `send_pulllist_notification_email()` to email service
+  - Scheduler checks `NotificationLog` before sending (prevents duplicates)
+  - Password reset flow: `/forgot-password`, `/reset-password/{token}`
+  - New templates: `forgot_password.html`, `reset_password.html`
+  - Scheduler now runs daily by default (configurable via `SCHEDULE_DAY_OF_WEEK`)
+  - New config: `NOTIFICATION_EMAIL` - where to send pull-list alerts
+  - Moved Komga/Mylar status lights from header to Logs page
+
 ### 2025-12-01 - User Authentication
 - **What**: Added username/password and magic link authentication
 - **Why**: Protect the application from unauthorized access
@@ -132,7 +153,7 @@ pull-list/
   - JWT tokens stored in httpOnly cookies (24-hour expiry)
   - Magic link tokens single-use, 15-minute expiry
   - First-run setup flow creates admin user
-  - New dependencies: passlib, python-jose, aiosmtplib, email-validator
+  - New dependencies: bcrypt, python-jose, aiosmtplib, email-validator
 
 ### 2025-12-01 - Read Progress Tracking & Docker Improvements
 - **What**: Added real-time read progress from Komga, improved Docker deployment
@@ -178,13 +199,21 @@ TIMEZONE=America/New_York
 SECRET_KEY=your-secure-random-key
 APP_URL=https://pulllist.example.com
 
-# SMTP (optional, for magic link auth)
+# SMTP (optional, for magic link auth and notifications)
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USERNAME=user@example.com
 SMTP_PASSWORD=your-password
 SMTP_FROM_EMAIL=pulllist@example.com
 SMTP_USE_TLS=true
+
+# Notifications (requires SMTP)
+NOTIFICATION_EMAIL=you@example.com
+
+# Schedule (default: daily at 10am)
+SCHEDULE_DAY_OF_WEEK=*       # "*" = daily, "wed" = Wednesday only
+SCHEDULE_HOUR=10
+SCHEDULE_MINUTE=0
 ```
 
 ### Volume Mount
@@ -210,5 +239,5 @@ docker buildx build --platform linux/amd64 -t rhymeswithjazz/pull-list:latest --
 - Add Mylar comic ID linking UI
 - Cover image caching/proxy for auth
 - Mobile-responsive improvements
-- Notifications (email/webhook) on new pull-list
 - Mark as read directly from dashboard
+- Webhook notifications (Discord, Slack, etc.)
