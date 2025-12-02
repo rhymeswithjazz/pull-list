@@ -12,12 +12,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.database import get_db, init_db
+from app.dependencies import get_current_user, get_current_user_optional
+from app.models import User
 from app.scheduler import (
     get_next_run_time,
     setup_scheduler,
     shutdown_scheduler,
     start_scheduler,
 )
+from app.services.auth import (
+    authenticate_user,
+    create_access_token,
+    create_magic_link_token,
+    create_user,
+    get_user_by_email,
+    get_user_count,
+    update_user_password,
+    verify_magic_link_token,
+)
+from app.services.email import send_magic_link_email, send_password_reset_email
 from app.services.komga import KomgaClient
 from app.services.mylar import MylarClient
 from app.services.pulllist import (
@@ -70,13 +83,15 @@ settings = get_settings()
 
 
 # Template context helpers
-def get_base_context(request: Request) -> dict:
+def get_base_context(request: Request, user: User | None = None) -> dict:
     """Get base context for templates."""
     return {
         "request": request,
         "week_id": get_current_week_id(),
         "next_run": get_next_run_time(),
         "komga_url": settings.komga_url,
+        "user": user,
+        "smtp_configured": settings.smtp_configured,
     }
 
 
@@ -86,6 +101,7 @@ async def dashboard(
     request: Request,
     week: str | None = None,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """Main dashboard showing the weekly pull-list."""
     service = PullListService(db)
@@ -113,21 +129,37 @@ async def dashboard(
     if display_week_id >= current_week_id:
         has_next_week = False
 
+    # Fetch fresh read progress from Komga for all books
+    book_ids = [book.komga_book_id for book in weekly_books]
+    komga_books: dict = {}
+    if book_ids:
+        try:
+            async with KomgaClient() as komga:
+                komga_books = await komga.get_books_by_ids(book_ids)
+        except Exception:
+            pass  # Fall back to database values if Komga is unavailable
+
     # Build pull list items from weekly books
     pull_list_items = []
     for book in weekly_books:
+        # Get fresh read progress from Komga if available
+        komga_book = komga_books.get(book.komga_book_id)
+        is_read = komga_book.is_read if komga_book else book.is_read
+        read_percentage = komga_book.read_percentage if komga_book else 0
+
         pull_list_items.append({
             "series_name": book.series_name,
             "book_number": book.book_number,
             "book_title": book.book_title,
             "is_downloaded": True,
-            "is_read": book.is_read,
+            "is_read": is_read,
+            "read_percentage": read_percentage,
             "thumbnail_url": f"/api/proxy/book/{book.komga_book_id}/thumbnail",
             "read_url": f"{settings.komga_url}/book/{book.komga_book_id}/read",
             "komga_book_id": book.komga_book_id,
         })
 
-    context = get_base_context(request)
+    context = get_base_context(request, user)
     context.update({
         "pull_list": pull_list_items,
         "tracked_series": tracked_series,
@@ -150,6 +182,7 @@ async def dashboard(
 async def run_now(
     request: Request,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """Manually trigger pull-list generation."""
     service = PullListService(db)
@@ -169,13 +202,14 @@ async def run_now(
             "book_title": item.book_title,
             "is_downloaded": item.is_downloaded,
             "is_read": item.is_read,
+            "read_percentage": item.read_percentage,
             "thumbnail_url": item.thumbnail_url,
             "read_url": item.read_url,
             "komga_book_id": item.komga_book_id,
             "release_date": item.release_date,
         })
 
-    context = get_base_context(request)
+    context = get_base_context(request, user)
     context.update({
         "pull_list": pull_list_items,
         "result": result,
@@ -190,12 +224,13 @@ async def run_now(
 async def logs_page(
     request: Request,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """Logs page showing run history."""
     service = PullListService(db)
     recent_runs = await service.get_recent_runs(limit=50)
 
-    context = get_base_context(request)
+    context = get_base_context(request, user)
     context.update({
         "recent_runs": recent_runs,
     })
@@ -207,12 +242,13 @@ async def logs_page(
 async def settings_page(
     request: Request,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """Settings page for managing tracked series."""
     service = PullListService(db)
     tracked_series = await service.get_tracked_series(active_only=False)
 
-    context = get_base_context(request)
+    context = get_base_context(request, user)
     context.update({
         "tracked_series": tracked_series,
     })
@@ -225,6 +261,7 @@ async def search_series(
     request: Request,
     query: str = Form(...),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """Search Komga for series to add."""
     async with KomgaClient() as komga:
@@ -235,7 +272,7 @@ async def search_series(
     tracked_series = await service.get_tracked_series(active_only=False)
     tracked_ids = {s.komga_series_id for s in tracked_series}
 
-    context = get_base_context(request)
+    context = get_base_context(request, user)
     context.update({
         "search_results": series_list,
         "query": query,
@@ -250,6 +287,7 @@ async def add_series(
     request: Request,
     komga_series_id: str = Form(...),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """Add a series to tracking."""
     async with KomgaClient() as komga:
@@ -265,7 +303,7 @@ async def add_series(
     # Return updated tracked series list
     tracked_series = await service.get_tracked_series(active_only=False)
 
-    context = get_base_context(request)
+    context = get_base_context(request, user)
     context.update({
         "tracked_series": tracked_series,
     })
@@ -278,6 +316,7 @@ async def toggle_series(
     request: Request,
     series_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """Toggle a series active status."""
     service = PullListService(db)
@@ -285,7 +324,7 @@ async def toggle_series(
 
     tracked_series = await service.get_tracked_series(active_only=False)
 
-    context = get_base_context(request)
+    context = get_base_context(request, user)
     context.update({
         "tracked_series": tracked_series,
     })
@@ -298,6 +337,7 @@ async def delete_series(
     request: Request,
     series_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """Remove a series from tracking."""
     service = PullListService(db)
@@ -305,7 +345,7 @@ async def delete_series(
 
     tracked_series = await service.get_tracked_series(active_only=False)
 
-    context = get_base_context(request)
+    context = get_base_context(request, user)
     context.update({
         "tracked_series": tracked_series,
     })
@@ -314,7 +354,10 @@ async def delete_series(
 
 
 @app.get("/api/status", response_class=HTMLResponse)
-async def get_status(request: Request):
+async def get_status(
+    request: Request,
+    user: User = Depends(get_current_user),
+):
     """Get connection status for Mylar and Komga."""
     mylar_status = False
     komga_status = False
@@ -331,7 +374,7 @@ async def get_status(request: Request):
     except Exception:
         pass
 
-    context = get_base_context(request)
+    context = get_base_context(request, user)
     context.update({
         "mylar_status": mylar_status,
         "komga_status": komga_status,
@@ -345,17 +388,21 @@ async def clear_week(
     request: Request,
     week_id: str,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """Clear all books for a specific week."""
     service = PullListService(db)
-    count = await service.clear_week_books(week_id)
+    await service.clear_week_books(week_id)
 
     # Redirect back to dashboard
     return RedirectResponse(url="/", status_code=303)
 
 
 @app.get("/api/proxy/book/{book_id}/thumbnail")
-async def proxy_book_thumbnail(book_id: str):
+async def proxy_book_thumbnail(
+    book_id: str,
+    user: User = Depends(get_current_user),
+):
     """Proxy book thumbnail from Komga with authentication."""
     async with KomgaClient() as komga:
         url = f"/api/v1/books/{book_id}/thumbnail"
@@ -372,7 +419,10 @@ async def proxy_book_thumbnail(book_id: str):
 
 
 @app.get("/api/proxy/series/{series_id}/thumbnail")
-async def proxy_series_thumbnail(series_id: str):
+async def proxy_series_thumbnail(
+    series_id: str,
+    user: User = Depends(get_current_user),
+):
     """Proxy series thumbnail from Komga with authentication."""
     async with KomgaClient() as komga:
         url = f"/api/v1/series/{series_id}/thumbnail"
@@ -392,3 +442,304 @@ async def proxy_series_thumbnail(series_id: str):
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy"}
+
+
+# =============================================================================
+# Authentication Routes
+# =============================================================================
+
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_current_user_optional),
+):
+    """Login page."""
+    # If already logged in, redirect to dashboard
+    if user:
+        return RedirectResponse(url="/", status_code=303)
+
+    # If no users exist, redirect to setup
+    user_count = await get_user_count(db)
+    if user_count == 0:
+        return RedirectResponse(url="/setup", status_code=303)
+
+    context = {
+        "request": request,
+        "smtp_configured": settings.smtp_configured,
+    }
+    return templates.TemplateResponse("login.html", context)
+
+
+@app.post("/api/auth/login")
+async def login(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Handle login form submission."""
+    user = await authenticate_user(db, username, password)
+
+    if not user:
+        # Return error for HTMX
+        context = {
+            "request": request,
+            "error": "Invalid username or password",
+            "smtp_configured": settings.smtp_configured,
+        }
+        return templates.TemplateResponse(
+            "login.html",
+            context,
+            status_code=401,
+        )
+
+    # Create access token
+    access_token = create_access_token(user.id)
+
+    # Set cookie and redirect
+    response = RedirectResponse(url="/", status_code=303)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=request.url.scheme == "https",
+        samesite="lax",
+        max_age=settings.access_token_expire_minutes * 60,
+    )
+    return response
+
+
+@app.post("/api/auth/magic-link", response_class=HTMLResponse)
+async def request_magic_link(
+    request: Request,
+    email: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Request a magic link login email."""
+    # Always show success message to prevent email enumeration
+    context = {
+        "request": request,
+        "magic_link_sent": True,
+        "smtp_configured": settings.smtp_configured,
+    }
+
+    user = await get_user_by_email(db, email)
+    if user and user.is_active:
+        # Create magic link token
+        token = await create_magic_link_token(db, user.id)
+        # Send email (fire and forget - we don't wait for success)
+        await send_magic_link_email(email, token)
+
+    return templates.TemplateResponse("login.html", context)
+
+
+@app.get("/auth/magic-link/{token}")
+async def verify_magic_link(
+    request: Request,
+    token: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Verify a magic link token and log the user in."""
+    user = await verify_magic_link_token(db, token)
+
+    if not user:
+        # Invalid or expired token
+        context = {
+            "request": request,
+            "error": "Invalid or expired magic link. Please request a new one.",
+            "smtp_configured": settings.smtp_configured,
+        }
+        return templates.TemplateResponse("login.html", context, status_code=400)
+
+    # Create access token
+    access_token = create_access_token(user.id)
+
+    # Set cookie and redirect
+    response = RedirectResponse(url="/", status_code=303)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=request.url.scheme == "https",
+        samesite="lax",
+        max_age=settings.access_token_expire_minutes * 60,
+    )
+    return response
+
+
+@app.post("/api/auth/logout")
+async def logout(request: Request):
+    """Log the user out by clearing the access token cookie."""
+    response = RedirectResponse(url="/login", status_code=303)
+    response.delete_cookie(key="access_token")
+    return response
+
+
+@app.get("/setup", response_class=HTMLResponse)
+async def setup_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Initial setup page - create first user."""
+    # If users exist, redirect to login
+    user_count = await get_user_count(db)
+    if user_count > 0:
+        return RedirectResponse(url="/login", status_code=303)
+
+    context = {"request": request}
+    return templates.TemplateResponse("setup.html", context)
+
+
+@app.post("/api/auth/setup")
+async def setup_create_user(
+    request: Request,
+    username: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create the initial user during setup."""
+    # Check if users already exist
+    user_count = await get_user_count(db)
+    if user_count > 0:
+        return RedirectResponse(url="/login", status_code=303)
+
+    # Basic validation
+    if len(username) < 3:
+        context = {
+            "request": request,
+            "error": "Username must be at least 3 characters",
+        }
+        return templates.TemplateResponse("setup.html", context, status_code=400)
+
+    if len(password) < 8:
+        context = {
+            "request": request,
+            "error": "Password must be at least 8 characters",
+        }
+        return templates.TemplateResponse("setup.html", context, status_code=400)
+
+    # Create user
+    user = await create_user(db, username, email, password)
+
+    # Log them in
+    access_token = create_access_token(user.id)
+
+    response = RedirectResponse(url="/", status_code=303)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=request.url.scheme == "https",
+        samesite="lax",
+        max_age=settings.access_token_expire_minutes * 60,
+    )
+    return response
+
+
+@app.get("/forgot-password", response_class=HTMLResponse)
+async def forgot_password_page(request: Request):
+    """Forgot password page."""
+    if not settings.smtp_configured:
+        # Redirect to login if SMTP not configured
+        return RedirectResponse(url="/login", status_code=303)
+
+    context = {"request": request}
+    return templates.TemplateResponse("forgot_password.html", context)
+
+
+@app.post("/api/auth/forgot-password", response_class=HTMLResponse)
+async def forgot_password(
+    request: Request,
+    email: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Request a password reset email."""
+    # Always show success message to prevent email enumeration
+    context = {
+        "request": request,
+        "reset_sent": True,
+    }
+
+    user = await get_user_by_email(db, email)
+    if user and user.is_active:
+        # Create magic link token (reuse for password reset)
+        token = await create_magic_link_token(db, user.id)
+        await send_password_reset_email(email, token)
+
+    return templates.TemplateResponse("forgot_password.html", context)
+
+
+@app.get("/reset-password/{token}", response_class=HTMLResponse)
+async def reset_password_page(
+    request: Request,
+    token: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Password reset form page."""
+    # Verify token is valid (but don't consume it yet)
+    from sqlalchemy import select
+
+    from app.models import MagicLinkToken
+    from app.services.auth import utcnow
+
+    result = await db.execute(
+        select(MagicLinkToken).where(MagicLinkToken.token == token)
+    )
+    magic_token = result.scalar_one_or_none()
+
+    if not magic_token or magic_token.used_at or magic_token.expires_at < utcnow():
+        context = {
+            "request": request,
+            "error": "Invalid or expired reset link. Please request a new one.",
+            "smtp_configured": settings.smtp_configured,
+        }
+        return templates.TemplateResponse("login.html", context, status_code=400)
+
+    context = {
+        "request": request,
+        "token": token,
+    }
+    return templates.TemplateResponse("reset_password.html", context)
+
+
+@app.post("/api/auth/reset-password/{token}", response_class=HTMLResponse)
+async def reset_password(
+    request: Request,
+    token: str,
+    password: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Process password reset."""
+    # Verify and consume the token
+    user = await verify_magic_link_token(db, token)
+
+    if not user:
+        context = {
+            "request": request,
+            "error": "Invalid or expired reset link. Please request a new one.",
+            "smtp_configured": settings.smtp_configured,
+        }
+        return templates.TemplateResponse("login.html", context, status_code=400)
+
+    # Validate password
+    if len(password) < 8:
+        context = {
+            "request": request,
+            "token": token,
+            "error": "Password must be at least 8 characters",
+        }
+        return templates.TemplateResponse("reset_password.html", context, status_code=400)
+
+    # Update password
+    await update_user_password(db, user.id, password)
+
+    # Redirect to login with success message
+    context = {
+        "request": request,
+        "success": "Password reset successfully. Please log in with your new password.",
+        "smtp_configured": settings.smtp_configured,
+    }
+    return templates.TemplateResponse("login.html", context)

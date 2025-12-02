@@ -46,12 +46,29 @@ class KomgaBook:
     url: str
     metadata: dict[str, Any]
     read_progress: dict[str, Any] | None
+    pages_count: int = 0
 
     @property
     def is_read(self) -> bool:
         if not self.read_progress:
             return False
         return self.read_progress.get("completed", False)
+
+    @property
+    def pages_read(self) -> int:
+        """Number of pages read (0 if not started)."""
+        if not self.read_progress:
+            return 0
+        return self.read_progress.get("page", 0)
+
+    @property
+    def read_percentage(self) -> int:
+        """Percentage of book read (0-100)."""
+        if not self.read_progress or self.pages_count == 0:
+            return 0
+        if self.is_read:
+            return 100
+        return min(100, int((self.pages_read / self.pages_count) * 100))
 
     @property
     def title(self) -> str | None:
@@ -158,6 +175,25 @@ class KomgaClient:
         """Get a specific series by ID."""
         data = await self._get(f"/api/v1/series/{series_id}")
         return self._parse_series(data)
+
+    async def get_book_by_id(self, book_id: str) -> KomgaBook:
+        """Get a specific book by ID with current read progress."""
+        data = await self._get(f"/api/v1/books/{book_id}")
+        return self._parse_book(data)
+
+    async def get_books_by_ids(self, book_ids: list[str]) -> dict[str, KomgaBook]:
+        """Get multiple books by IDs. Returns a dict mapping book_id to KomgaBook."""
+        import asyncio
+        
+        async def fetch_book(book_id: str) -> tuple[str, KomgaBook | None]:
+            try:
+                book = await self.get_book_by_id(book_id)
+                return (book_id, book)
+            except Exception:
+                return (book_id, None)
+        
+        results = await asyncio.gather(*[fetch_book(bid) for bid in book_ids])
+        return {bid: book for bid, book in results if book is not None}
 
     async def get_series_books(
         self,
@@ -278,6 +314,10 @@ class KomgaClient:
 
     def _parse_book(self, data: dict[str, Any]) -> KomgaBook:
         """Parse book data from API response."""
+        # Get pages count from media field
+        media = data.get("media", {})
+        pages_count = media.get("pagesCount", 0) if media else 0
+
         return KomgaBook(
             id=data["id"],
             series_id=data.get("seriesId", ""),
@@ -295,4 +335,5 @@ class KomgaClient:
             url=data.get("url", ""),
             metadata=data.get("metadata", {}),
             read_progress=data.get("readProgress"),
+            pages_count=pages_count,
         )

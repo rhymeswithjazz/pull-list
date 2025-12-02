@@ -38,6 +38,9 @@ class PullListItem:
     # Mylar info (for upcoming tracking)
     mylar_issue_id: str | None = None
 
+    # Read progress (percentage 0-100)
+    read_percentage: int = 0
+
 
 @dataclass
 class PullListResult:
@@ -253,6 +256,7 @@ class PullListService:
                             book_title=book.title,
                             is_downloaded=True,
                             is_read=book.is_read,
+                            read_percentage=book.read_percentage,
                             release_date=None,
                             thumbnail_url=thumbnail_url,
                             read_url=read_url,

@@ -3,11 +3,14 @@
 
 services:
   pull-list:
-    build: .
+    image: rhymeswithjazz/pull-list
     container_name: pull-list
     ports:
-      - "8000:8000"
+      - "8282:8000"
     environment:
+      # User/Group IDs for permissions
+      - PUID=${PUID:-1026}
+      - PGID=${PGID:-100}
       # Mylar3 settings
       - MYLAR_URL=${MYLAR_URL:-http://mylar:8090}
       - MYLAR_API_KEY=${MYLAR_API_KEY}
@@ -19,13 +22,23 @@ services:
       # App settings
       - DATABASE_URL=sqlite+aiosqlite:///./data/pulllist.db
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
-      # Schedule settings
-      - SCHEDULE_DAY_OF_WEEK=${SCHEDULE_DAY_OF_WEEK:-wed}
+      - APP_URL=${APP_URL:-http://localhost:8282}
+      # SMTP settings (for magic link authentication)
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
+      # Schedule settings (daily by default, notifications sent once per week)
+      - SCHEDULE_DAY_OF_WEEK=${SCHEDULE_DAY_OF_WEEK:-*}
       - SCHEDULE_HOUR=${SCHEDULE_HOUR:-10}
       - SCHEDULE_MINUTE=${SCHEDULE_MINUTE:-0}
       - TIMEZONE=${TIMEZONE:-America/New_York}
+      # Notification settings
+      - NOTIFICATION_EMAIL=${NOTIFICATION_EMAIL:-}
     volumes:
-      - pulllist-data:/app/data
+      - /volume1/docker/pull-list:/app/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
@@ -33,6 +46,3 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-
-volumes:
-  pulllist-data:

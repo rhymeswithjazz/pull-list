@@ -42,9 +42,13 @@
                 <span class="px-2 py-0.5 text-xs font-medium bg-green-600 text-white rounded-full">
                     Read
                 </span>
+                {% elif item.read_percentage > 0 %}
+                <span class="px-2 py-0.5 text-xs font-medium bg-purple-600 text-white rounded-full">
+                    {{ item.read_percentage }}%
+                </span>
                 {% elif item.is_downloaded %}
                 <span class="px-2 py-0.5 text-xs font-medium bg-blue-600 text-white rounded-full">
-                    Ready
+                    Unread
                 </span>
                 {% else %}
                 <span class="px-2 py-0.5 text-xs font-medium bg-yellow-600 text-white rounded-full badge-pulse">
@@ -52,6 +56,13 @@
                 </span>
                 {% endif %}
             </div>
+
+            <!-- Read progress bar -->
+            {% if item.read_percentage > 0 and not item.is_read %}
+            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gray-900/50">
+                <div class="h-full bg-purple-500" style="width: {{ item.read_percentage }}%"></div>
+            </div>
+            {% endif %}
 
             <!-- Release date for upcoming -->
             {% if item.release_date and not item.is_downloaded %}

@@ -6,11 +6,14 @@
 
 services:
   pull-list:
-    image: ${DOCKER_REGISTRY:-}/pull-list:${TAG:-latest}
+    image: rhymeswithjazz/pull-list:${TAG:-latest}
     container_name: pull-list
     ports:
-      - "8000:8000"
+      - "8282:8000"
     environment:
+      # User/Group IDs for permissions (match your NAS user)
+      - PUID=${PUID:-1026}
+      - PGID=${PGID:-100}
       # Mylar3 settings - update these for your network
       - MYLAR_URL=${MYLAR_URL:-http://mylar:8090}
       - MYLAR_API_KEY=${MYLAR_API_KEY}
@@ -22,13 +25,23 @@ services:
       # App settings
       - DATABASE_URL=sqlite+aiosqlite:///./data/pulllist.db
       - SECRET_KEY=${SECRET_KEY}
-      # Schedule settings (Wednesday at 10am by default - new comic book day)
-      - SCHEDULE_DAY_OF_WEEK=${SCHEDULE_DAY_OF_WEEK:-wed}
+      - APP_URL=${APP_URL}
+      # SMTP settings (for magic link authentication - leave empty to disable)
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
+      # Schedule settings (daily by default, notifications sent once per week)
+      - SCHEDULE_DAY_OF_WEEK=${SCHEDULE_DAY_OF_WEEK:-*}
       - SCHEDULE_HOUR=${SCHEDULE_HOUR:-10}
       - SCHEDULE_MINUTE=${SCHEDULE_MINUTE:-0}
       - TIMEZONE=${TIMEZONE:-America/New_York}
+      # Notification settings (email when new comics available)
+      - NOTIFICATION_EMAIL=${NOTIFICATION_EMAIL:-}
     volumes:
-      - pulllist-data:/app/data
+      - /volume1/docker/pull-list:/app/data
     networks:
       - comics
     restart: unless-stopped
@@ -38,9 +51,6 @@ services:
       # - "traefik.http.routers.pulllist.rule=Host(`pulllist.yourdomain.com`)"
       # - "traefik.http.services.pulllist.loadbalancer.server.port=8000"
 
-volumes:
-  pulllist-data:
-    driver: local
 
 networks:
   comics:
