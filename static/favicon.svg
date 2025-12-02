@@ -1,24 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- Comic book stack design -->
-  <defs>
-    <style>
-      @media (prefers-color-scheme: dark) {
-        .book-bg { fill: #FCD34D; }
-        .book-accent { fill: #F59E0B; }
-        .book-lines { stroke: #92400E; }
-      }
-    </style>
-  </defs>
-  <!-- Back book -->
-  <rect x="6" y="4" width="20" height="26" rx="1" fill="#F59E0B" stroke="#92400E" stroke-width="1"/>
-  <!-- Middle book -->
-  <rect x="4" y="3" width="20" height="26" rx="1" fill="#FBBF24" stroke="#92400E" stroke-width="1"/>
-  <!-- Front book -->
-  <rect x="2" y="2" width="20" height="26" rx="1" class="book-bg" fill="#FCD34D" stroke="#92400E" stroke-width="1"/>
-  <!-- Book spine line -->
-  <line x1="5" y1="4" x2="5" y2="26" class="book-lines" stroke="#92400E" stroke-width="1"/>
-  <!-- Title lines on cover -->
-  <rect x="8" y="7" width="10" height="2" rx="0.5" fill="#92400E"/>
-  <rect x="8" y="11" width="8" height="1.5" rx="0.5" fill="#B45309" opacity="0.7"/>
-  <rect x="8" y="14" width="6" height="1.5" rx="0.5" fill="#B45309" opacity="0.5"/>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 29 33" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;">
+    <g transform="matrix(1,0,0,1,0.061553,0.061553)">
+        <path d="M26,5L26,29C26,29.552 25.552,30 25,30L7,30C6.448,30 6,29.552 6,29L6,5C6,4.448 6.448,4 7,4L25,4C25.552,4 26,4.448 26,5Z" style="fill:rgb(245,158,11);stroke:rgb(146,64,14);stroke-width:1px;"/>
+        <path d="M24,4L24,28C24,28.552 23.552,29 23,29L5,29C4.448,29 4,28.552 4,28L4,4C4,3.448 4.448,3 5,3L23,3C23.552,3 24,3.448 24,4Z" style="fill:rgb(251,191,36);stroke:rgb(146,64,14);stroke-width:1px;"/>
+        <path d="M22,3L22,27C22,27.552 21.552,28 21,28L3,28C2.448,28 2,27.552 2,27L2,3C2,2.448 2.448,2 3,2L21,2C21.552,2 22,2.448 22,3Z" style="fill:rgb(252,211,77);stroke:rgb(146,64,14);stroke-width:1px;"/>
+        <g transform="matrix(1.272727,0,0,1.083333,-3.909091,-5.75)">
+            <path d="M18,13.8C18,16.449 15.536,18.6 12.5,18.6C12.088,18.6 11.677,18.56 11.275,18.479L9.021,21L9.515,17.832C7.947,16.947 7,15.429 7,13.8C7,11.151 9.464,9 12.5,9C15.536,9 18,11.151 18,13.8Z" style="fill:white;stroke:rgb(146,64,14);stroke-width:0.51px;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;"/>
+        </g>
+    </g>
 </svg>
