@@ -1,10 +1,10 @@
-# Pull-List
+# Wednesday
 
 A comic book pull-list dashboard that integrates with Mylar3 and Komga to create weekly reading lists.
 
 ## Features
 
-- **Weekly Pull-List Dashboard**: Visual grid of comic covers for your tracked series
+- **Weekly Wednesday Dashboard**: Visual grid of comic covers for your tracked series
 - **Komga Integration**: Automatically creates reading lists in Komga
 - **Mylar3 Integration**: Shows upcoming releases (optional)
 - **Scheduled Generation**: Automatically runs on your schedule (default: Wednesdays)
@@ -84,7 +84,7 @@ A comic book pull-list dashboard that integrates with Mylar3 and Komga to create
 ## Usage
 
 1. **Add Series**: Go to Settings and search for series from your Komga library
-2. **Generate Pull-List**: Click "Generate Now" or wait for the scheduled run
+2. **Generate Wednesday**: Click "Generate Now" or wait for the scheduled run
 3. **Read Comics**: Click any cover to open it directly in Komga
 
 ## Tech Stack

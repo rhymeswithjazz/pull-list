@@ -3,7 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Pull-List{% endblock %}</title>
+    <title>{% block title %}Wednesday{% endblock %}</title>
+
+    <!-- Google Fonts - Comic style -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+    <link rel="manifest" href="/static/site.webmanifest">
+    <meta name="theme-color" content="#FCD34D">
 
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -63,8 +77,8 @@
                 <div class="flex h-16 items-center justify-between">
                     <div class="flex items-center">
                         <a href="/" class="flex items-center space-x-2">
-                            <span class="text-2xl">📚</span>
-                            <span class="text-xl font-bold text-comic-yellow">Pull-List</span>
+                            <img src="/static/favicon.svg" alt="Wednesday" class="h-8 w-8">
+                            <span class="text-2xl text-comic-yellow" style="font-family: 'Bangers', cursive; letter-spacing: 0.05em;">Wednesday</span>
                         </a>
                         <div class="ml-10 flex items-baseline space-x-4">
                             <a href="/" class="px-3 py-2 rounded-md text-sm font-medium {% if request.url.path == '/' or request.url.path.startswith('/?') %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">

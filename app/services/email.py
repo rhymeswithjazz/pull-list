@@ -25,15 +25,15 @@ async def send_magic_link_email(email: str, token: str) -> bool:
 
     # Create message
     message = MIMEMultipart("alternative")
-    message["Subject"] = "Pull-List Login Link"
+    message["Subject"] = "Wednesday Login Link"
     message["From"] = settings.smtp_from_email
     message["To"] = email
 
     # Plain text version
     text_content = f"""
-Pull-List Login
+Wednesday Login
 
-Click the link below to log in to Pull-List:
+Click the link below to log in to Wednesday:
 
 {magic_link_url}
 
@@ -52,19 +52,19 @@ If you didn't request this login link, you can safely ignore this email.
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 28px;">Pull-List</h1>
+        <h1 style="color: white; margin: 0; font-size: 28px;">Wednesday</h1>
         <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Your Comic Book Dashboard</p>
     </div>
 
     <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #eee; border-top: none;">
         <h2 style="margin-top: 0; color: #333;">Login Link</h2>
 
-        <p>Click the button below to log in to Pull-List:</p>
+        <p>Click the button below to log in to Wednesday:</p>
 
         <div style="text-align: center; margin: 30px 0;">
             <a href="{magic_link_url}"
                style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
-                Log In to Pull-List
+                Log In to Wednesday
             </a>
         </div>
 
@@ -128,13 +128,13 @@ async def send_password_reset_email(email: str, token: str) -> bool:
 
     # Create message
     message = MIMEMultipart("alternative")
-    message["Subject"] = "Pull-List Password Reset"
+    message["Subject"] = "Wednesday Password Reset"
     message["From"] = settings.smtp_from_email
     message["To"] = email
 
     # Plain text version
     text_content = f"""
-Pull-List Password Reset
+Wednesday Password Reset
 
 Click the link below to reset your password:
 
@@ -155,7 +155,7 @@ If you didn't request a password reset, you can safely ignore this email.
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 28px;">Pull-List</h1>
+        <h1 style="color: white; margin: 0; font-size: 28px;">Wednesday</h1>
         <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Your Comic Book Dashboard</p>
     </div>
 
@@ -250,13 +250,13 @@ async def send_pulllist_notification_email(
 
     # Create message
     message = MIMEMultipart("alternative")
-    message["Subject"] = f"Pull-List Ready: {items_count} issue{'s' if items_count != 1 else ''} for {week_id}"
+    message["Subject"] = f"Wednesday Ready: {items_count} issue{'s' if items_count != 1 else ''} for {week_id}"
     message["From"] = settings.smtp_from_email
     message["To"] = settings.notification_email
 
     # Plain text version
     text_content = f"""
-Pull-List Ready!
+Wednesday Ready!
 
 Your weekly pull-list for {week_id} is ready with {items_count} issue{'s' if items_count != 1 else ''}.
 
@@ -274,7 +274,7 @@ View your pull-list: {dashboard_url}
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-        <h1 style="color: #1F2937; margin: 0; font-size: 28px;">📚 Pull-List</h1>
+        <h1 style="color: #1F2937; margin: 0; font-size: 28px;">📚 Wednesday</h1>
         <p style="color: #374151; margin: 10px 0 0 0;">Your Comic Book Dashboard</p>
     </div>
 
@@ -288,7 +288,7 @@ View your pull-list: {dashboard_url}
         <div style="text-align: center; margin: 30px 0;">
             <a href="{dashboard_url}"
                style="display: inline-block; background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%); color: #1F2937; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
-                View Pull-List
+                View Wednesday
             </a>
         </div>
 

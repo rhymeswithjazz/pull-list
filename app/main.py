@@ -53,18 +53,18 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
     # Startup
-    logger.info("Starting Pull-List application")
+    logger.info("Starting Wednesday application")
     await init_db()
     setup_scheduler()
     start_scheduler()
     yield
     # Shutdown
     shutdown_scheduler()
-    logger.info("Pull-List application stopped")
+    logger.info("Wednesday application stopped")
 
 
 app = FastAPI(
-    title="Pull-List",
+    title="Wednesday",
     description="Comic book pull-list dashboard",
     version="0.1.0",
     lifespan=lifespan,

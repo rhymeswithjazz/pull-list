@@ -94,7 +94,7 @@ def setup_scheduler():
         scheduled_pulllist_job,
         trigger=trigger,
         id="pulllist_job",
-        name="Pull-List Generation",
+        name="Wednesday Generation",
         replace_existing=True,
     )
 

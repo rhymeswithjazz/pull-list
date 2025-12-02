@@ -1,4 +1,4 @@
-# Pull-List Dockerfile
+# Wednesday Dockerfile
 FROM python:3.12-slim
 
 # Set environment variables

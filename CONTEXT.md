@@ -1,8 +1,8 @@
-# Pull-List - Project Context
+# Wednesday - Project Context
 
 ## Project Overview
 
-Pull-List is a comic book pull-list dashboard that integrates with self-hosted Mylar3 and Komga instances. It allows users to track specific comic series and generates weekly reading lists with a visual cover grid interface.
+Wednesday is a comic book pull-list dashboard that integrates with self-hosted Mylar3 and Komga instances. It allows users to track specific comic series and generates weekly reading lists with a visual cover grid interface.
 
 ### Target Audience
 - Comic book readers with self-hosted media servers
@@ -31,7 +31,7 @@ Pull-List is a comic book pull-list dashboard that integrates with self-hosted M
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      Pull-List App                          │
+│                      Wednesday App                          │
 ├─────────────────────────────────────────────────────────────┤
 │  FastAPI Application                                         │
 │  ├── Routes (main.py)                                       │
@@ -109,7 +109,7 @@ pull-list/
 ## Data Flow
 
 1. **Series Tracking**: User adds series via Settings page → stored in `tracked_series` table
-2. **Pull-List Generation**:
+2. **Wednesday Generation**:
    - Triggered manually or by scheduler
    - Queries Komga for new books from tracked series (last 7 days)
    - Optionally queries Mylar for upcoming releases
