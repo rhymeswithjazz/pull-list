@@ -262,10 +262,13 @@ class PullListService:
                             read_url=read_url,
                         )
                         pull_list_items.append(item)
-                        komga_book_ids.append(book.id)
 
                         # Determine week based on book's created date
                         book_week_id = get_week_id_for_date(book.created_date)
+
+                        # Only add to readlist if book belongs to current week
+                        if book_week_id == week_id:
+                            komga_book_ids.append(book.id)
 
                         # Save to weekly_books table (check for existing first)
                         existing = await self.db.execute(
