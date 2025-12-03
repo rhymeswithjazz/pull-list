@@ -7,13 +7,22 @@
 {% endif %}
 
 {% if result and result.success and result.readlist_id %}
-<div class="bg-green-900/50 border border-green-500 rounded-lg p-4 mb-4">
+<div class="bg-green-900/50 border border-green-500 rounded-lg p-4 mb-4 flex items-center justify-between">
     <p class="text-green-200">
         ✓ Pull-list generated!
         <a href="{{ komga_url }}/readlists/{{ result.readlist_id }}" target="_blank" class="underline hover:text-white">
             View "{{ result.readlist_name }}" in Komga →
         </a>
     </p>
+    <button
+        onclick="this.parentElement.remove()"
+        class="text-green-200 hover:text-white ml-4 p-1"
+        aria-label="Dismiss"
+    >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+    </button>
 </div>
 {% endif %}
 
