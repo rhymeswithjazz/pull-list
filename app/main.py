@@ -193,20 +193,39 @@ async def run_now(
         create_readlist=True,
     )
 
-    # Build response items
+    # Fetch current week's books from database (same as dashboard)
+    # This ensures we only show books for the current week, not all books
+    # from the 7-day generation window which may span multiple weeks
+    current_week_id = get_current_week_id()
+    weekly_books = await service.get_week_books(current_week_id)
+
+    # Fetch fresh read progress from Komga
+    book_ids = [book.komga_book_id for book in weekly_books]
+    komga_books: dict = {}
+    if book_ids:
+        try:
+            async with KomgaClient() as komga:
+                komga_books = await komga.get_books_by_ids(book_ids)
+        except Exception:
+            pass
+
+    # Build response items from database (consistent with dashboard)
     pull_list_items = []
-    for item in result.items:
+    for book in weekly_books:
+        komga_book = komga_books.get(book.komga_book_id)
+        is_read = komga_book.is_read if komga_book else book.is_read
+        read_percentage = komga_book.read_percentage if komga_book else 0
+
         pull_list_items.append({
-            "series_name": item.series_name,
-            "book_number": item.book_number,
-            "book_title": item.book_title,
-            "is_downloaded": item.is_downloaded,
-            "is_read": item.is_read,
-            "read_percentage": item.read_percentage,
-            "thumbnail_url": item.thumbnail_url,
-            "read_url": item.read_url,
-            "komga_book_id": item.komga_book_id,
-            "release_date": item.release_date,
+            "series_name": book.series_name,
+            "book_number": book.book_number,
+            "book_title": book.book_title,
+            "is_downloaded": True,
+            "is_read": is_read,
+            "read_percentage": read_percentage,
+            "thumbnail_url": f"/api/proxy/book/{book.komga_book_id}/thumbnail",
+            "read_url": f"{settings.komga_url}/book/{book.komga_book_id}/read",
+            "komga_book_id": book.komga_book_id,
         })
 
     context = get_base_context(request, user)
