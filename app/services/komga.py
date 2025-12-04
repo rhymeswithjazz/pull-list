@@ -134,6 +134,7 @@ class KomgaClient:
             # Capture error details from response body
             error_body = response.text
             import logging
+
             logging.getLogger(__name__).error(
                 f"POST {path} failed with {response.status_code}: {error_body}"
             )
@@ -184,14 +185,14 @@ class KomgaClient:
     async def get_books_by_ids(self, book_ids: list[str]) -> dict[str, KomgaBook]:
         """Get multiple books by IDs. Returns a dict mapping book_id to KomgaBook."""
         import asyncio
-        
+
         async def fetch_book(book_id: str) -> tuple[str, KomgaBook | None]:
             try:
                 book = await self.get_book_by_id(book_id)
                 return (book_id, book)
             except Exception:
                 return (book_id, None)
-        
+
         results = await asyncio.gather(*[fetch_book(bid) for bid in book_ids])
         return {bid: book for bid, book in results if book is not None}
 
@@ -247,6 +248,7 @@ class KomgaClient:
         result = await self._post("/api/v1/readlists", json=payload)
         # Log for debugging
         import logging
+
         logging.getLogger(__name__).info(f"Readlist creation response: {result}")
         return result
 
@@ -267,6 +269,7 @@ class KomgaClient:
     async def find_readlist_by_name(self, name: str) -> dict[str, Any] | None:
         """Find a readlist by exact name."""
         import logging
+
         logger = logging.getLogger(__name__)
 
         # Get all readlists and search manually (search param may not work as expected)
@@ -285,6 +288,7 @@ class KomgaClient:
     async def delete_readlist(self, readlist_id: str) -> None:
         """Delete a reading list."""
         import logging
+
         logger = logging.getLogger(__name__)
 
         if not self._client:

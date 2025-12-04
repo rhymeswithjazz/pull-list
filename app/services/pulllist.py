@@ -1,15 +1,14 @@
 """Pull-list generation service."""
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Any
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import PullListRun, TrackedSeries, WeeklyBook
-from app.services.komga import KomgaBook, KomgaClient
-from app.services.mylar import MylarClient, MylarUpcomingIssue
+from app.services.komga import KomgaClient
+from app.services.mylar import MylarClient
 
 
 @dataclass
@@ -130,7 +129,7 @@ class PullListService:
         """Get all tracked series from the database."""
         query = select(TrackedSeries)
         if active_only:
-            query = query.where(TrackedSeries.is_active == True)
+            query = query.where(TrackedSeries.is_active.is_(True))
         query = query.order_by(TrackedSeries.name)
 
         result = await self.db.execute(query)
@@ -194,8 +193,7 @@ class PullListService:
             create_readlist: Whether to create a Komga readlist
         """
         week_id = get_current_week_id()
-        week_start = get_week_start_date()
-        cutoff_date = datetime.now(timezone.utc) - timedelta(days=days_back)
+        cutoff_date = datetime.now(UTC) - timedelta(days=days_back)
 
         # Create run record
         run = PullListRun(
@@ -221,11 +219,8 @@ class PullListService:
                     week_id=week_id,
                 )
 
-            # Build lookup for tracked series
-            tracked_by_komga_id = {s.komga_series_id: s for s in tracked}
-            tracked_by_mylar_id = {
-                s.mylar_comic_id: s for s in tracked if s.mylar_comic_id
-            }
+            # Build lookup for tracked series (by Mylar ID for upcoming matching)
+            tracked_by_mylar_id = {s.mylar_comic_id: s for s in tracked if s.mylar_comic_id}
 
             # Fetch data from both services
             pull_list_items: list[PullListItem] = []
@@ -237,10 +232,7 @@ class PullListService:
                     books = await komga.get_series_books(series.komga_series_id)
 
                     # Filter to recently added books
-                    new_books = [
-                        b for b in books
-                        if b.created_date >= cutoff_date
-                    ]
+                    new_books = [b for b in books if b.created_date >= cutoff_date]
 
                     for book in new_books:
                         # Use proxy URLs for thumbnails
@@ -339,6 +331,7 @@ class PullListService:
                     readlist_name = f"Pull List - {week_id}"
                     try:
                         import logging
+
                         logger = logging.getLogger(__name__)
 
                         # Check if readlist already exists and delete it
@@ -350,7 +343,9 @@ class PullListService:
                             logger.info("Existing readlist deleted")
 
                         # Create fresh readlist
-                        logger.info(f"Creating readlist with {len(komga_book_ids)} books: {komga_book_ids}")
+                        logger.info(
+                            f"Creating readlist with {len(komga_book_ids)} books: {komga_book_ids}"
+                        )
                         result = await komga.create_readlist(
                             name=readlist_name,
                             book_ids=komga_book_ids,
@@ -360,7 +355,10 @@ class PullListService:
                         readlist_id = result.get("id") if result else None
                     except Exception as e:
                         import traceback
-                        error_details = f"Readlist creation failed: {str(e)}\n{traceback.format_exc()}"
+
+                        error_details = (
+                            f"Readlist creation failed: {str(e)}\n{traceback.format_exc()}"
+                        )
                         logging.getLogger(__name__).error(error_details)
                         run.error_message = error_details
 
@@ -414,16 +412,15 @@ class PullListService:
     async def get_available_weeks(self) -> list[str]:
         """Get list of weeks that have books, ordered newest first."""
         from sqlalchemy import distinct
-        query = (
-            select(distinct(WeeklyBook.week_id))
-            .order_by(WeeklyBook.week_id.desc())
-        )
+
+        query = select(distinct(WeeklyBook.week_id)).order_by(WeeklyBook.week_id.desc())
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
     async def has_books_for_week(self, week_id: str) -> bool:
         """Check if there are any books for a specific week."""
         from sqlalchemy import func
+
         query = select(func.count()).where(WeeklyBook.week_id == week_id)
         result = await self.db.execute(query)
         count = result.scalar()
@@ -447,11 +444,7 @@ class PullListService:
 
     async def get_recent_runs(self, limit: int = 10) -> list[PullListRun]:
         """Get recent pull-list runs."""
-        query = (
-            select(PullListRun)
-            .order_by(PullListRun.started_at.desc())
-            .limit(limit)
-        )
+        query = select(PullListRun).order_by(PullListRun.started_at.desc()).limit(limit)
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
@@ -461,7 +454,7 @@ class PullListService:
             select(PullListRun)
             .where(
                 PullListRun.status == "success",
-                PullListRun.readlist_created == True,
+                PullListRun.readlist_created.is_(True),
                 PullListRun.readlist_name.contains(week_id),
             )
             .order_by(PullListRun.started_at.desc())

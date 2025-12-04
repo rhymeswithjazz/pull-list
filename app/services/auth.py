@@ -40,9 +40,7 @@ def create_access_token(user_id: int, expires_delta: timedelta | None = None) ->
     if expires_delta:
         expire = utcnow() + expires_delta
     else:
-        expire = utcnow() + timedelta(
-            minutes=settings.access_token_expire_minutes
-        )
+        expire = utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
 
     to_encode = {
         "sub": str(user_id),
@@ -55,9 +53,7 @@ def create_access_token(user_id: int, expires_delta: timedelta | None = None) ->
 def decode_access_token(token: str) -> dict | None:
     """Decode and validate a JWT access token. Returns payload or None if invalid."""
     try:
-        payload = jwt.decode(
-            token, settings.secret_key, algorithms=[settings.jwt_algorithm]
-        )
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
         if payload.get("type") != "access":
             return None
         return payload
@@ -83,9 +79,7 @@ async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     return result.scalar_one_or_none()
 
 
-async def authenticate_user(
-    db: AsyncSession, username: str, password: str
-) -> User | None:
+async def authenticate_user(db: AsyncSession, username: str, password: str) -> User | None:
     """Authenticate a user by username and password."""
     user = await get_user_by_username(db, username)
     if not user:
@@ -127,9 +121,7 @@ async def create_magic_link_token(db: AsyncSession, user_id: int) -> str:
     token = secrets.token_urlsafe(32)
 
     # Calculate expiration
-    expires_at = utcnow() + timedelta(
-        minutes=settings.magic_link_expire_minutes
-    )
+    expires_at = utcnow() + timedelta(minutes=settings.magic_link_expire_minutes)
 
     # Store in database
     magic_token = MagicLinkToken(
@@ -145,9 +137,7 @@ async def create_magic_link_token(db: AsyncSession, user_id: int) -> str:
 
 async def verify_magic_link_token(db: AsyncSession, token: str) -> User | None:
     """Verify a magic link token and return the user if valid."""
-    result = await db.execute(
-        select(MagicLinkToken).where(MagicLinkToken.token == token)
-    )
+    result = await db.execute(select(MagicLinkToken).where(MagicLinkToken.token == token))
     magic_token = result.scalar_one_or_none()
 
     if not magic_token:
@@ -186,11 +176,7 @@ async def update_user_password(db: AsyncSession, user_id: int, new_password: str
 
 async def cleanup_expired_tokens(db: AsyncSession) -> int:
     """Delete expired magic link tokens. Returns count of deleted tokens."""
-    result = await db.execute(
-        select(MagicLinkToken).where(
-            MagicLinkToken.expires_at < utcnow()
-        )
-    )
+    result = await db.execute(select(MagicLinkToken).where(MagicLinkToken.expires_at < utcnow()))
     expired_tokens = result.scalars().all()
     count = len(expired_tokens)
 

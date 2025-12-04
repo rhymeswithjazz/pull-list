@@ -9,7 +9,6 @@ Usage:
     python scripts/generate_favicons.py
 """
 
-import io
 from pathlib import Path
 
 try:

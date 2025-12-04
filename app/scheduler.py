@@ -20,9 +20,7 @@ scheduler = AsyncIOScheduler()
 
 async def was_notification_sent_for_week(db: AsyncSession, week_id: str) -> bool:
     """Check if a notification was already sent for the given week."""
-    result = await db.execute(
-        select(NotificationLog).where(NotificationLog.week_id == week_id)
-    )
+    result = await db.execute(select(NotificationLog).where(NotificationLog.week_id == week_id))
     return result.scalar_one_or_none() is not None
 
 
@@ -69,7 +67,9 @@ async def scheduled_pulllist_job():
                             await record_notification_sent(db, result.week_id, len(result.items))
                             logger.info(f"Notification sent for week {result.week_id}")
                     else:
-                        logger.debug(f"Notification already sent for week {result.week_id}, skipping")
+                        logger.debug(
+                            f"Notification already sent for week {result.week_id}, skipping"
+                        )
             else:
                 logger.error(f"Scheduled pull-list failed: {result.error}")
 

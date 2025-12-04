@@ -147,33 +147,37 @@ async def dashboard(
         is_read = komga_book.is_read if komga_book else book.is_read
         read_percentage = komga_book.read_percentage if komga_book else 0
 
-        pull_list_items.append({
-            "series_name": book.series_name,
-            "book_number": book.book_number,
-            "book_title": book.book_title,
-            "is_downloaded": True,
-            "is_read": is_read,
-            "read_percentage": read_percentage,
-            "thumbnail_url": f"/api/proxy/book/{book.komga_book_id}/thumbnail",
-            "read_url": f"{settings.komga_url}/book/{book.komga_book_id}/read",
-            "komga_book_id": book.komga_book_id,
-        })
+        pull_list_items.append(
+            {
+                "series_name": book.series_name,
+                "book_number": book.book_number,
+                "book_title": book.book_title,
+                "is_downloaded": True,
+                "is_read": is_read,
+                "read_percentage": read_percentage,
+                "thumbnail_url": f"/api/proxy/book/{book.komga_book_id}/thumbnail",
+                "read_url": f"{settings.komga_url}/book/{book.komga_book_id}/read",
+                "komga_book_id": book.komga_book_id,
+            }
+        )
 
     context = get_base_context(request, user)
-    context.update({
-        "pull_list": pull_list_items,
-        "tracked_series": tracked_series,
-        "tracked_count": len(tracked_series),
-        "books_count": len(pull_list_items),
-        # Week navigation
-        "display_week_id": display_week_id,
-        "week_display": format_week_display(display_week_id),
-        "is_current_week": is_current_week,
-        "prev_week_id": prev_week_id if has_prev_week else None,
-        "next_week_id": next_week_id if has_next_week else None,
-        "available_weeks": available_weeks,
-        "week_readlist": week_readlist,
-    })
+    context.update(
+        {
+            "pull_list": pull_list_items,
+            "tracked_series": tracked_series,
+            "tracked_count": len(tracked_series),
+            "books_count": len(pull_list_items),
+            # Week navigation
+            "display_week_id": display_week_id,
+            "week_display": format_week_display(display_week_id),
+            "is_current_week": is_current_week,
+            "prev_week_id": prev_week_id if has_prev_week else None,
+            "next_week_id": next_week_id if has_next_week else None,
+            "available_weeks": available_weeks,
+            "week_readlist": week_readlist,
+        }
+    )
 
     return templates.TemplateResponse("dashboard.html", context)
 
@@ -216,25 +220,29 @@ async def run_now(
         is_read = komga_book.is_read if komga_book else book.is_read
         read_percentage = komga_book.read_percentage if komga_book else 0
 
-        pull_list_items.append({
-            "series_name": book.series_name,
-            "book_number": book.book_number,
-            "book_title": book.book_title,
-            "is_downloaded": True,
-            "is_read": is_read,
-            "read_percentage": read_percentage,
-            "thumbnail_url": f"/api/proxy/book/{book.komga_book_id}/thumbnail",
-            "read_url": f"{settings.komga_url}/book/{book.komga_book_id}/read",
-            "komga_book_id": book.komga_book_id,
-        })
+        pull_list_items.append(
+            {
+                "series_name": book.series_name,
+                "book_number": book.book_number,
+                "book_title": book.book_title,
+                "is_downloaded": True,
+                "is_read": is_read,
+                "read_percentage": read_percentage,
+                "thumbnail_url": f"/api/proxy/book/{book.komga_book_id}/thumbnail",
+                "read_url": f"{settings.komga_url}/book/{book.komga_book_id}/read",
+                "komga_book_id": book.komga_book_id,
+            }
+        )
 
     context = get_base_context(request, user)
-    context.update({
-        "pull_list": pull_list_items,
-        "result": result,
-        "success": result.success,
-        "error": result.error,
-    })
+    context.update(
+        {
+            "pull_list": pull_list_items,
+            "result": result,
+            "success": result.success,
+            "error": result.error,
+        }
+    )
 
     return templates.TemplateResponse("partials/pull_list_grid.html", context)
 
@@ -250,9 +258,11 @@ async def logs_page(
     recent_runs = await service.get_recent_runs(limit=50)
 
     context = get_base_context(request, user)
-    context.update({
-        "recent_runs": recent_runs,
-    })
+    context.update(
+        {
+            "recent_runs": recent_runs,
+        }
+    )
 
     return templates.TemplateResponse("logs.html", context)
 
@@ -268,9 +278,11 @@ async def settings_page(
     tracked_series = await service.get_tracked_series(active_only=False)
 
     context = get_base_context(request, user)
-    context.update({
-        "tracked_series": tracked_series,
-    })
+    context.update(
+        {
+            "tracked_series": tracked_series,
+        }
+    )
 
     return templates.TemplateResponse("settings.html", context)
 
@@ -292,11 +304,13 @@ async def search_series(
     tracked_ids = {s.komga_series_id for s in tracked_series}
 
     context = get_base_context(request, user)
-    context.update({
-        "search_results": series_list,
-        "query": query,
-        "tracked_ids": tracked_ids,
-    })
+    context.update(
+        {
+            "search_results": series_list,
+            "query": query,
+            "tracked_ids": tracked_ids,
+        }
+    )
 
     return templates.TemplateResponse("partials/series_search_results.html", context)
 
@@ -323,9 +337,11 @@ async def add_series(
     tracked_series = await service.get_tracked_series(active_only=False)
 
     context = get_base_context(request, user)
-    context.update({
-        "tracked_series": tracked_series,
-    })
+    context.update(
+        {
+            "tracked_series": tracked_series,
+        }
+    )
 
     return templates.TemplateResponse("partials/tracked_series_list.html", context)
 
@@ -344,9 +360,11 @@ async def toggle_series(
     tracked_series = await service.get_tracked_series(active_only=False)
 
     context = get_base_context(request, user)
-    context.update({
-        "tracked_series": tracked_series,
-    })
+    context.update(
+        {
+            "tracked_series": tracked_series,
+        }
+    )
 
     return templates.TemplateResponse("partials/tracked_series_list.html", context)
 
@@ -365,9 +383,11 @@ async def delete_series(
     tracked_series = await service.get_tracked_series(active_only=False)
 
     context = get_base_context(request, user)
-    context.update({
-        "tracked_series": tracked_series,
-    })
+    context.update(
+        {
+            "tracked_series": tracked_series,
+        }
+    )
 
     return templates.TemplateResponse("partials/tracked_series_list.html", context)
 
@@ -394,10 +414,12 @@ async def get_status(
         pass
 
     context = get_base_context(request, user)
-    context.update({
-        "mylar_status": mylar_status,
-        "komga_status": komga_status,
-    })
+    context.update(
+        {
+            "mylar_status": mylar_status,
+            "komga_status": komga_status,
+        }
+    )
 
     return templates.TemplateResponse("partials/status_badges.html", context)
 
@@ -704,9 +726,7 @@ async def reset_password_page(
     from app.models import MagicLinkToken
     from app.services.auth import utcnow
 
-    result = await db.execute(
-        select(MagicLinkToken).where(MagicLinkToken.token == token)
-    )
+    result = await db.execute(select(MagicLinkToken).where(MagicLinkToken.token == token))
     magic_token = result.scalar_one_or_none()
 
     if not magic_token or magic_token.used_at or magic_token.expires_at < utcnow():

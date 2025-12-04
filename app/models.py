@@ -51,7 +51,9 @@ class PullListRun(Base):
 
     # Run info
     run_type: Mapped[str] = mapped_column(String(50), nullable=False)  # "manual" or "scheduled"
-    status: Mapped[str] = mapped_column(String(50), nullable=False)  # "running", "success", "failed"
+    status: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # "running", "success", "failed"
 
     # Results
     books_found: Mapped[int] = mapped_column(Integer, default=0)
@@ -160,9 +162,7 @@ class NotificationLog(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     week_id: Mapped[str] = mapped_column(String(10), unique=True, index=True, nullable=False)
     items_count: Mapped[int] = mapped_column(Integer, nullable=False)
-    sent_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), nullable=False
-    )
+    sent_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
 
     def __repr__(self) -> str:
         return f"<NotificationLog {self.week_id} ({self.items_count} items)>"

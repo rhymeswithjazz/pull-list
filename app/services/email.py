@@ -250,7 +250,9 @@ async def send_pulllist_notification_email(
 
     # Create message
     message = MIMEMultipart("alternative")
-    message["Subject"] = f"Wednesday Ready: {items_count} issue{'s' if items_count != 1 else ''} for {week_id}"
+    message["Subject"] = (
+        f"Wednesday Ready: {items_count} issue{'s' if items_count != 1 else ''} for {week_id}"
+    )
     message["From"] = settings.smtp_from_email
     message["To"] = settings.notification_email
 
@@ -258,9 +260,9 @@ async def send_pulllist_notification_email(
     text_content = f"""
 Wednesday Ready!
 
-Your weekly pull-list for {week_id} is ready with {items_count} issue{'s' if items_count != 1 else ''}.
+Your weekly pull-list for {week_id} is ready with {items_count} issue{"s" if items_count != 1 else ""}.
 
-{items_text if items_text else ''}
+{items_text if items_text else ""}
 View your pull-list: {dashboard_url}
 """
 
@@ -281,9 +283,9 @@ View your pull-list: {dashboard_url}
     <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #eee; border-top: none;">
         <h2 style="margin-top: 0; color: #333;">New Comics Available!</h2>
 
-        <p>Your weekly pull-list for <strong>{week_id}</strong> is ready with <strong>{items_count} issue{'s' if items_count != 1 else ''}</strong>.</p>
+        <p>Your weekly pull-list for <strong>{week_id}</strong> is ready with <strong>{items_count} issue{"s" if items_count != 1 else ""}</strong>.</p>
 
-        {items_html if items_html else ''}
+        {items_html if items_html else ""}
 
         <div style="text-align: center; margin: 30px 0;">
             <a href="{dashboard_url}"
