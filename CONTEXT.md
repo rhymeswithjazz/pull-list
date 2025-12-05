@@ -19,7 +19,7 @@ Wednesday is a comic book pull-list dashboard that integrates with self-hosted M
 
 - **Language**: Python 3.12
 - **Framework**: FastAPI 0.115.x
-- **Frontend**: HTMX 1.9.x + Jinja2 templates + Tailwind CSS (CDN)
+- **Frontend**: HTMX 1.9.x + Alpine.js 3.x + Jinja2 templates + Tailwind CSS (CDN)
 - **Database**: SQLite with SQLAlchemy 2.x (async)
 - **Scheduling**: APScheduler 3.10.x
 - **HTTP Client**: httpx 0.28.x
@@ -56,6 +56,9 @@ Wednesday is a comic book pull-list dashboard that integrates with self-hosted M
 │  │   ├── GET /api/v1/series - List/search series           │
 │  │   ├── GET /api/v1/series/{id}/books - Get books         │
 │  │   ├── GET /api/v1/books/{id} - Get book with progress   │
+│  │   ├── GET /api/v1/books/{id}/file - Download book file  │
+│  │   ├── PATCH /api/v1/books/{id}/read-progress - Mark read│
+│  │   ├── DELETE /api/v1/books/{id}/read-progress - Clear   │
 │  │   └── POST /api/v1/readlists - Create reading list      │
 │  └── Mylar3 API (optional)                                  │
 │       └── getUpcoming - Get weekly releases                 │
@@ -91,6 +94,7 @@ pull-list/
 │       ├── logs.html            # Run history + status lights
 │       ├── settings.html
 │       └── partials/
+│           ├── book_card.html
 │           ├── pull_list_grid.html
 │           ├── tracked_series_list.html
 │           ├── series_search_results.html
@@ -121,6 +125,19 @@ pull-list/
    - Shows cover grid with status badges and progress bars
 
 ## Recent Major Changes
+
+### 2025-12-05 - Mark Read/Unread & Download Actions
+- **What**: Added ability to mark books as read/unread and download for offline reading
+- **Why**: Allow users to manage read status directly from dashboard without opening Komga
+- **Impact**: Each book card now has a dropdown menu with Mark Read, Mark Unread, and Download options
+- **Changes**:
+  - New KomgaClient methods: `mark_book_read()`, `mark_book_unread()`, `get_book_file()`
+  - New API endpoints: `POST /api/book/{id}/mark-read`, `POST /api/book/{id}/mark-unread`, `GET /api/book/{id}/download`
+  - New partial template: `book_card.html` with Alpine.js dropdown menu
+  - Added Alpine.js to base template for interactive UI components
+  - Refactored `pull_list_grid.html` to use book_card partial
+  - Mark Read disabled when book is already fully read
+  - Mark Unread disabled when book has no reading progress
 
 ### 2025-12-01 - Email Notifications & Password Reset
 - **What**: Added email notifications for new pull-lists and password reset flow
@@ -239,5 +256,4 @@ docker buildx build --platform linux/amd64 -t rhymeswithjazz/pull-list:latest --
 - Add Mylar comic ID linking UI
 - Cover image caching/proxy for auth
 - Mobile-responsive improvements
-- Mark as read directly from dashboard
 - Webhook notifications (Discord, Slack, etc.)
