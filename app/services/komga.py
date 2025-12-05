@@ -144,6 +144,35 @@ class KomgaClient:
             return response.json()
         return None
 
+    async def _patch(self, path: str, json: dict[str, Any] | None = None) -> Any:
+        """Make PATCH request and return JSON response."""
+        if not self._client:
+            raise RuntimeError("Client not initialized. Use 'async with' context manager.")
+
+        url = f"{self.base_url}{path}"
+        response = await self._client.patch(url, json=json)
+
+        if not response.is_success:
+            import logging
+
+            logging.getLogger(__name__).error(
+                f"PATCH {path} failed with {response.status_code}: {response.text}"
+            )
+            response.raise_for_status()
+
+        if response.content:
+            return response.json()
+        return None
+
+    async def _delete(self, path: str) -> None:
+        """Make DELETE request."""
+        if not self._client:
+            raise RuntimeError("Client not initialized. Use 'async with' context manager.")
+
+        url = f"{self.base_url}{path}"
+        response = await self._client.delete(url)
+        response.raise_for_status()
+
     async def test_connection(self) -> bool:
         """Test connection to Komga."""
         try:
@@ -303,6 +332,44 @@ class KomgaClient:
 
         response.raise_for_status()
         logger.info(f"Successfully deleted readlist {readlist_id}")
+
+    async def mark_book_read(self, book_id: str) -> None:
+        """Mark a book as fully read in Komga."""
+        await self._patch(
+            f"/api/v1/books/{book_id}/read-progress",
+            json={"completed": True},
+        )
+
+    async def mark_book_unread(self, book_id: str) -> None:
+        """Mark a book as unread by clearing read progress in Komga."""
+        await self._delete(f"/api/v1/books/{book_id}/read-progress")
+
+    async def get_book_file(self, book_id: str) -> tuple[bytes, str, str]:
+        """Get the book file content for download.
+
+        Returns a tuple of (content, filename, media_type).
+        """
+        if not self._client:
+            raise RuntimeError("Client not initialized. Use 'async with' context manager.")
+
+        url = f"{self.base_url}/api/v1/books/{book_id}/file"
+        response = await self._client.get(url)
+        response.raise_for_status()
+
+        # Extract filename from Content-Disposition header
+        content_disposition = response.headers.get("content-disposition", "")
+        filename = "book.cbz"
+        if "filename=" in content_disposition:
+            # Parse filename from header (handles both quoted and unquoted)
+            import re
+
+            match = re.search(r'filename[*]?=["\']?([^"\';\n]+)["\']?', content_disposition)
+            if match:
+                filename = match.group(1).strip()
+
+        media_type = response.headers.get("content-type", "application/octet-stream")
+
+        return response.content, filename, media_type
 
     def _parse_series(self, data: dict[str, Any]) -> KomgaSeries:
         """Parse series data from API response."""

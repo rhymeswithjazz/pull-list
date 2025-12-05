@@ -479,6 +479,95 @@ async def proxy_series_thumbnail(
             raise HTTPException(status_code=404, detail="Thumbnail not found")
 
 
+@app.post("/api/book/{book_id}/mark-read", response_class=HTMLResponse)
+async def mark_book_read(
+    request: Request,
+    book_id: str,
+    user: User = Depends(get_current_user),
+):
+    """Mark a book as read in Komga and return updated book card."""
+    try:
+        async with KomgaClient() as komga:
+            await komga.mark_book_read(book_id)
+            book = await komga.get_book_by_id(book_id)
+    except Exception as e:
+        logger.error(f"Failed to mark book {book_id} as read: {e}")
+        raise HTTPException(status_code=500, detail="Failed to mark book as read")
+
+    context = {
+        "request": request,
+        "item": {
+            "series_name": book.metadata.get("seriesTitle", book.name),
+            "book_number": book.number,
+            "book_title": book.title,
+            "is_downloaded": True,
+            "is_read": True,
+            "read_percentage": 100,
+            "thumbnail_url": f"/api/proxy/book/{book_id}/thumbnail",
+            "read_url": f"{settings.komga_url}/book/{book_id}/read",
+            "komga_book_id": book_id,
+        },
+    }
+
+    return templates.TemplateResponse("partials/book_card.html", context)
+
+
+@app.post("/api/book/{book_id}/mark-unread", response_class=HTMLResponse)
+async def mark_book_unread(
+    request: Request,
+    book_id: str,
+    user: User = Depends(get_current_user),
+):
+    """Mark a book as unread in Komga and return updated book card."""
+    try:
+        async with KomgaClient() as komga:
+            await komga.mark_book_unread(book_id)
+            book = await komga.get_book_by_id(book_id)
+    except Exception as e:
+        logger.error(f"Failed to mark book {book_id} as unread: {e}")
+        raise HTTPException(status_code=500, detail="Failed to mark book as unread")
+
+    context = {
+        "request": request,
+        "item": {
+            "series_name": book.metadata.get("seriesTitle", book.name),
+            "book_number": book.number,
+            "book_title": book.title,
+            "is_downloaded": True,
+            "is_read": False,
+            "read_percentage": 0,
+            "thumbnail_url": f"/api/proxy/book/{book_id}/thumbnail",
+            "read_url": f"{settings.komga_url}/book/{book_id}/read",
+            "komga_book_id": book_id,
+        },
+    }
+
+    return templates.TemplateResponse("partials/book_card.html", context)
+
+
+@app.get("/api/book/{book_id}/download")
+async def download_book(
+    book_id: str,
+    user: User = Depends(get_current_user),
+):
+    """Download a book file from Komga."""
+    try:
+        async with KomgaClient() as komga:
+            content, filename, media_type = await komga.get_book_file(book_id)
+    except Exception as e:
+        logger.error(f"Failed to download book {book_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to download book")
+
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(content)),
+        },
+    )
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
