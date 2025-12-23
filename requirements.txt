@@ -20,4 +20,4 @@ apscheduler==3.10.4
 pydantic-settings==2.6.1
 
 # Date handling
-python-dateutil==2.9.0
+python-dateutil==2.9.0.post0
