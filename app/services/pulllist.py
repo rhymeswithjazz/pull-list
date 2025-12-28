@@ -227,9 +227,7 @@ class PullListService:
             komga_book_ids: list[str] = []
 
             # Clear existing weekly books for this week to ensure we only keep currently tracked series
-            await self.db.execute(
-                delete(WeeklyBook).where(WeeklyBook.week_id == week_id)
-            )
+            await self.db.execute(delete(WeeklyBook).where(WeeklyBook.week_id == week_id))
             await self.db.commit()
 
             async with KomgaClient() as komga:
