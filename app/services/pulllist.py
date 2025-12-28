@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import PullListRun, TrackedSeries, WeeklyBook
@@ -225,6 +225,12 @@ class PullListService:
             # Fetch data from both services
             pull_list_items: list[PullListItem] = []
             komga_book_ids: list[str] = []
+
+            # Clear existing weekly books for this week to ensure we only keep currently tracked series
+            await self.db.execute(
+                delete(WeeklyBook).where(WeeklyBook.week_id == week_id)
+            )
+            await self.db.commit()
 
             async with KomgaClient() as komga:
                 # Get new books from tracked series
