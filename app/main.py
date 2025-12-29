@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.database import get_db, init_db
 from app.dependencies import get_current_user, get_current_user_optional
+from app.migrations import run_migrations
 from app.models import User
 from app.scheduler import (
     get_next_run_time,
@@ -55,6 +56,12 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Wednesday application")
     await init_db()
+
+    # Run database migrations
+    async for db in get_db():
+        await run_migrations(db)
+        break
+
     setup_scheduler()
     start_scheduler()
     yield
