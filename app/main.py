@@ -158,6 +158,7 @@ async def dashboard(
                 "thumbnail_url": f"/api/proxy/book/{book.komga_book_id}/thumbnail",
                 "read_url": f"{settings.komga_url}/book/{book.komga_book_id}/read",
                 "komga_book_id": book.komga_book_id,
+                "is_one_off": book.tracked_series_id is None,
             }
         )
 
@@ -231,6 +232,7 @@ async def run_now(
                 "thumbnail_url": f"/api/proxy/book/{book.komga_book_id}/thumbnail",
                 "read_url": f"{settings.komga_url}/book/{book.komga_book_id}/read",
                 "komga_book_id": book.komga_book_id,
+                "is_one_off": book.tracked_series_id is None,
             }
         )
 
@@ -281,6 +283,7 @@ async def settings_page(
     context.update(
         {
             "tracked_series": tracked_series,
+            "display_week_id": get_current_week_id(),
         }
     )
 
@@ -566,6 +569,107 @@ async def download_book(
             "Content-Length": str(len(content)),
         },
     )
+
+
+@app.get("/api/week/{week_id}/available-books", response_class=HTMLResponse)
+async def get_available_books(
+    request: Request,
+    week_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Get all available books for a week (for one-off browsing)."""
+    service = PullListService(db)
+
+    # Get books from Komga
+    available_books = await service.get_weekly_books_for_browsing(week_id)
+
+    # Get already added books
+    weekly_books = await service.get_week_books(week_id)
+    added_book_ids = {wb.komga_book_id for wb in weekly_books}
+
+    # Build book list
+    book_items = []
+    for book in available_books:
+        book_items.append(
+            {
+                "komga_book_id": book.id,
+                "series_name": book.metadata.get("seriesTitle", book.name),
+                "book_number": book.number,
+                "thumbnail_url": f"/api/proxy/book/{book.id}/thumbnail",
+                "is_added": book.id in added_book_ids,
+                "is_read": book.is_read,
+            }
+        )
+
+    book_items.sort(key=lambda x: (x["series_name"], x["book_number"]))
+
+    context = get_base_context(request, user)
+    context.update({"books": book_items, "week_id": week_id})
+
+    return templates.TemplateResponse("partials/available_books_grid.html", context)
+
+
+@app.post("/api/week/{week_id}/add-book/{book_id}", response_class=HTMLResponse)
+async def add_one_off_book_endpoint(
+    request: Request,
+    week_id: str,
+    book_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Add a one-off book to the pull-list."""
+    service = PullListService(db)
+
+    try:
+        await service.add_one_off_book(week_id, book_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    context = {"request": request, "book_id": book_id, "is_added": True}
+    return templates.TemplateResponse("partials/add_book_button.html", context)
+
+
+@app.post("/api/book/{book_id}/promote-to-tracked", response_class=HTMLResponse)
+async def promote_one_off_endpoint(
+    request: Request,
+    book_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Promote a one-off book to a tracked series."""
+    service = PullListService(db)
+    current_week_id = get_current_week_id()
+
+    try:
+        await service.promote_one_off_to_tracked(current_week_id, book_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Fetch updated book data
+    async with KomgaClient() as komga:
+        book = await komga.get_book_by_id(book_id)
+
+    weekly_books = await service.get_week_books(current_week_id)
+    weekly_book = next(wb for wb in weekly_books if wb.komga_book_id == book_id)
+
+    context = {
+        "request": request,
+        "item": {
+            "series_name": weekly_book.series_name,
+            "book_number": book.number,
+            "book_title": book.title,
+            "is_downloaded": True,
+            "is_read": book.is_read,
+            "read_percentage": book.read_percentage,
+            "thumbnail_url": f"/api/proxy/book/{book_id}/thumbnail",
+            "read_url": f"{settings.komga_url}/book/{book_id}/read",
+            "komga_book_id": book_id,
+            "is_one_off": False,  # Now tracked
+        },
+    }
+
+    return templates.TemplateResponse("partials/book_card.html", context)
 
 
 @app.get("/health")

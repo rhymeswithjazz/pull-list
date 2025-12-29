@@ -33,6 +33,10 @@
                 Upcoming
             </span>
             {% endif %}
+            <!-- One-off badge -->
+            {% if item.is_one_off %}
+            <span class="px-2 py-0.5 text-xs font-medium bg-purple-600 text-white rounded-full">One-Off</span>
+            {% endif %}
         </div>
 
         <!-- Read progress bar -->
@@ -156,6 +160,21 @@
                             </svg>
                             Download
                         </a>
+                        <!-- Promote to Tracked -->
+                        {% if item.is_one_off %}
+                        <button
+                            hx-post="/api/book/{{ item.komga_book_id }}/promote-to-tracked"
+                            hx-target="#book-{{ item.komga_book_id }}"
+                            hx-swap="outerHTML"
+                            @click="open = false"
+                            class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-600 flex items-center gap-2"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                            </svg>
+                            Add Series to Tracking
+                        </button>
+                        {% endif %}
                     </div>
                 </div>
             </div>
