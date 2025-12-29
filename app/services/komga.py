@@ -281,6 +281,27 @@ class KomgaClient:
         logging.getLogger(__name__).info(f"Readlist creation response: {result}")
         return result
 
+    async def update_readlist(
+        self,
+        readlist_id: str,
+        book_ids: list[str],
+        name: str | None = None,
+        ordered: bool = True,
+    ) -> dict[str, Any]:
+        """Update an existing reading list."""
+        payload = {
+            "bookIds": book_ids,
+            "ordered": ordered,
+        }
+        if name:
+            payload["name"] = name
+
+        result = await self._patch(f"/api/v1/readlists/{readlist_id}", json=payload)
+        import logging
+
+        logging.getLogger(__name__).info(f"Readlist update response: {result}")
+        return result
+
     async def get_readlists(
         self,
         page: int = 0,

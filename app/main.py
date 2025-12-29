@@ -211,9 +211,6 @@ async def run_now(
     current_week_id = get_current_week_id()
     weekly_books = await service.get_week_books(current_week_id)
 
-    # Get the latest readlist for this week (for "View in Komga" button)
-    week_readlist = await service.get_readlist_for_week(current_week_id)
-
     # Fetch fresh read progress from Komga
     book_ids = [book.komga_book_id for book in weekly_books]
     komga_books: dict = {}
@@ -253,7 +250,6 @@ async def run_now(
             "result": result,
             "success": result.success,
             "error": result.error,
-            "week_readlist": week_readlist,
         }
     )
 

@@ -358,25 +358,34 @@ class PullListService:
 
                         logger = logging.getLogger(__name__)
 
-                        # Check if readlist already exists and delete it
+                        # Check if readlist already exists
                         logger.info(f"Checking for existing readlist: {readlist_name}")
                         existing = await komga.find_readlist_by_name(readlist_name)
-                        if existing:
-                            logger.info(f"Deleting existing readlist: {existing['id']}")
-                            await komga.delete_readlist(existing["id"])
-                            logger.info("Existing readlist deleted")
 
-                        # Create fresh readlist
-                        logger.info(
-                            f"Creating readlist with {len(komga_book_ids)} books: {komga_book_ids}"
-                        )
-                        result = await komga.create_readlist(
-                            name=readlist_name,
-                            book_ids=komga_book_ids,
-                            ordered=True,
-                        )
-                        logger.info(f"Readlist creation result: {result}")
-                        readlist_id = result.get("id") if result else None
+                        if existing:
+                            # Update existing readlist
+                            logger.info(
+                                f"Updating existing readlist {existing['id']} with {len(komga_book_ids)} books"
+                            )
+                            result = await komga.update_readlist(
+                                readlist_id=existing["id"],
+                                book_ids=komga_book_ids,
+                                ordered=True,
+                            )
+                            logger.info(f"Readlist update result: {result}")
+                            readlist_id = existing["id"]
+                        else:
+                            # Create new readlist
+                            logger.info(
+                                f"Creating new readlist with {len(komga_book_ids)} books"
+                            )
+                            result = await komga.create_readlist(
+                                name=readlist_name,
+                                book_ids=komga_book_ids,
+                                ordered=True,
+                            )
+                            logger.info(f"Readlist creation result: {result}")
+                            readlist_id = result.get("id") if result else None
                     except Exception as e:
                         import traceback
 
