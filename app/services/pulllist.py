@@ -376,9 +376,7 @@ class PullListService:
                             readlist_id = existing["id"]
                         else:
                             # Create new readlist
-                            logger.info(
-                                f"Creating new readlist with {len(komga_book_ids)} books"
-                            )
+                            logger.info(f"Creating new readlist with {len(komga_book_ids)} books")
                             result = await komga.create_readlist(
                                 name=readlist_name,
                                 book_ids=komga_book_ids,
