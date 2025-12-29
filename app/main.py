@@ -727,6 +727,26 @@ async def promote_one_off_endpoint(
     return templates.TemplateResponse("partials/book_card.html", context)
 
 
+@app.delete("/api/book/{book_id}/remove-one-off", response_class=HTMLResponse)
+async def remove_one_off_endpoint(
+    request: Request,
+    book_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Remove a one-off book from the pull-list."""
+    service = PullListService(db)
+    current_week_id = get_current_week_id()
+
+    try:
+        await service.remove_one_off_book(current_week_id, book_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Return empty response - the book card will be removed from the DOM
+    return ""
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""

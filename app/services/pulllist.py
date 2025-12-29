@@ -578,3 +578,20 @@ class PullListService:
         await self.db.commit()
 
         return series
+
+    async def remove_one_off_book(self, week_id: str, komga_book_id: str) -> None:
+        """Remove a one-off book from the weekly pull-list."""
+        # Get the one-off book
+        result = await self.db.execute(
+            select(WeeklyBook).where(
+                WeeklyBook.week_id == week_id,
+                WeeklyBook.komga_book_id == komga_book_id,
+                WeeklyBook.tracked_series_id.is_(None),
+            )
+        )
+        weekly_book = result.scalar_one_or_none()
+        if not weekly_book:
+            raise ValueError("Book not found or not a one-off")
+
+        await self.db.delete(weekly_book)
+        await self.db.commit()
