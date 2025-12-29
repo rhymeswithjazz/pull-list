@@ -586,35 +586,41 @@ async def get_available_books(
     user: User = Depends(get_current_user),
 ):
     """Get all available books for a week (for one-off browsing)."""
+    logger.info(f"Fetching available books for week {week_id}")
     service = PullListService(db)
 
-    # Get books from Komga
-    available_books = await service.get_weekly_books_for_browsing(week_id)
+    try:
+        # Get books from Komga
+        available_books = await service.get_weekly_books_for_browsing(week_id)
+        logger.info(f"Found {len(available_books)} available books")
 
-    # Get already added books
-    weekly_books = await service.get_week_books(week_id)
-    added_book_ids = {wb.komga_book_id for wb in weekly_books}
+        # Get already added books
+        weekly_books = await service.get_week_books(week_id)
+        added_book_ids = {wb.komga_book_id for wb in weekly_books}
 
-    # Build book list
-    book_items = []
-    for book in available_books:
-        book_items.append(
-            {
-                "komga_book_id": book.id,
-                "series_name": book.metadata.get("seriesTitle", book.name),
-                "book_number": book.number,
-                "thumbnail_url": f"/api/proxy/book/{book.id}/thumbnail",
-                "is_added": book.id in added_book_ids,
-                "is_read": book.is_read,
-            }
-        )
+        # Build book list
+        book_items = []
+        for book in available_books:
+            book_items.append(
+                {
+                    "komga_book_id": book.id,
+                    "series_name": book.metadata.get("seriesTitle", book.name),
+                    "book_number": book.number,
+                    "thumbnail_url": f"/api/proxy/book/{book.id}/thumbnail",
+                    "is_added": book.id in added_book_ids,
+                    "is_read": book.is_read,
+                }
+            )
 
-    book_items.sort(key=lambda x: (x["series_name"], x["book_number"]))
+        book_items.sort(key=lambda x: (x["series_name"], x["book_number"]))
 
-    context = get_base_context(request, user)
-    context.update({"books": book_items, "week_id": week_id})
+        context = get_base_context(request, user)
+        context.update({"books": book_items, "week_id": week_id})
 
-    return templates.TemplateResponse("partials/available_books_grid.html", context)
+        return templates.TemplateResponse("partials/available_books_grid.html", context)
+    except Exception as e:
+        logger.error(f"Error fetching available books: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/week/{week_id}/add-book/{book_id}", response_class=HTMLResponse)

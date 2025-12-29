@@ -476,7 +476,9 @@ class PullListService:
     async def get_weekly_books_for_browsing(self, week_id: str, days_back: int = 7) -> list:
         """Get all books from Komga for the week (for one-off browsing)."""
         week_start = get_week_start_date(week_id)
+        # Make cutoff_date timezone-aware (UTC) to match Komga book dates
         cutoff_date = week_start - timedelta(days=days_back)
+        cutoff_date = cutoff_date.replace(tzinfo=UTC)
 
         async with KomgaClient() as komga:
             all_books = await komga.get_latest_books(size=500)
