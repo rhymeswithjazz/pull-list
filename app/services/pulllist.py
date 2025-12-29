@@ -333,6 +333,20 @@ class PullListService:
                     # Mylar connection is optional
                     pass
 
+                # Get existing one-off books for this week and add to readlist
+                one_off_result = await self.db.execute(
+                    select(WeeklyBook).where(
+                        WeeklyBook.week_id == week_id,
+                        WeeklyBook.tracked_series_id.is_(None),
+                    )
+                )
+                one_off_books = one_off_result.scalars().all()
+
+                # Add one-off book IDs to the readlist
+                for one_off in one_off_books:
+                    if one_off.komga_book_id not in komga_book_ids:
+                        komga_book_ids.append(one_off.komga_book_id)
+
                 # Create Komga readlist if requested and we have books
                 readlist_id = None
                 readlist_name = None
@@ -344,25 +358,32 @@ class PullListService:
 
                         logger = logging.getLogger(__name__)
 
-                        # Check if readlist already exists and delete it
+                        # Check if readlist already exists
                         logger.info(f"Checking for existing readlist: {readlist_name}")
                         existing = await komga.find_readlist_by_name(readlist_name)
-                        if existing:
-                            logger.info(f"Deleting existing readlist: {existing['id']}")
-                            await komga.delete_readlist(existing["id"])
-                            logger.info("Existing readlist deleted")
 
-                        # Create fresh readlist
-                        logger.info(
-                            f"Creating readlist with {len(komga_book_ids)} books: {komga_book_ids}"
-                        )
-                        result = await komga.create_readlist(
-                            name=readlist_name,
-                            book_ids=komga_book_ids,
-                            ordered=True,
-                        )
-                        logger.info(f"Readlist creation result: {result}")
-                        readlist_id = result.get("id") if result else None
+                        if existing:
+                            # Update existing readlist
+                            logger.info(
+                                f"Updating existing readlist {existing['id']} with {len(komga_book_ids)} books"
+                            )
+                            result = await komga.update_readlist(
+                                readlist_id=existing["id"],
+                                book_ids=komga_book_ids,
+                                ordered=True,
+                            )
+                            logger.info(f"Readlist update result: {result}")
+                            readlist_id = existing["id"]
+                        else:
+                            # Create new readlist
+                            logger.info(f"Creating new readlist with {len(komga_book_ids)} books")
+                            result = await komga.create_readlist(
+                                name=readlist_name,
+                                book_ids=komga_book_ids,
+                                ordered=True,
+                            )
+                            logger.info(f"Readlist creation result: {result}")
+                            readlist_id = result.get("id") if result else None
                     except Exception as e:
                         import traceback
 
@@ -476,7 +497,9 @@ class PullListService:
     async def get_weekly_books_for_browsing(self, week_id: str, days_back: int = 7) -> list:
         """Get all books from Komga for the week (for one-off browsing)."""
         week_start = get_week_start_date(week_id)
+        # Make cutoff_date timezone-aware (UTC) to match Komga book dates
         cutoff_date = week_start - timedelta(days=days_back)
+        cutoff_date = cutoff_date.replace(tzinfo=UTC)
 
         async with KomgaClient() as komga:
             all_books = await komga.get_latest_books(size=500)
@@ -553,3 +576,20 @@ class PullListService:
         await self.db.commit()
 
         return series
+
+    async def remove_one_off_book(self, week_id: str, komga_book_id: str) -> None:
+        """Remove a one-off book from the weekly pull-list."""
+        # Get the one-off book
+        result = await self.db.execute(
+            select(WeeklyBook).where(
+                WeeklyBook.week_id == week_id,
+                WeeklyBook.komga_book_id == komga_book_id,
+                WeeklyBook.tracked_series_id.is_(None),
+            )
+        )
+        weekly_book = result.scalar_one_or_none()
+        if not weekly_book:
+            raise ValueError("Book not found or not a one-off")
+
+        await self.db.delete(weekly_book)
+        await self.db.commit()

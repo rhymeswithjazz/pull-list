@@ -1,0 +1,33 @@
+# Pre-commit hooks configuration
+# See https://pre-commit.com for more information
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      # Run the linter
+      - id: ruff
+        args: [--fix]
+      # Run the formatter
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # Prevent committing large files
+      - id: check-added-large-files
+        args: ['--maxkb=10000']
+      # Check YAML files are valid
+      - id: check-yaml
+      # Check for files that would conflict in case-insensitive filesystems
+      - id: check-case-conflict
+      # Ensure files end with a newline
+      - id: end-of-file-fixer
+      # Trim trailing whitespace
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      # Check for merge conflicts
+      - id: check-merge-conflict
+      # Prevent committing to main branch directly
+      - id: no-commit-to-branch
+        args: ['--branch', 'main']

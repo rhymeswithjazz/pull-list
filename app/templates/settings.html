@@ -9,72 +9,97 @@
         <p class="text-gray-400 mt-1">Manage which series to include in your weekly pull-list</p>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Add Series -->
-        <div class="bg-gray-800 rounded-lg p-6">
-            <h2 class="text-xl font-semibold text-white mb-4">Add Series</h2>
-            <p class="text-gray-400 text-sm mb-4">Search your Komga library to add series to your pull-list</p>
+    <!-- Search Box (Always Visible) -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <h2 class="text-xl font-semibold text-white mb-4">Add Series</h2>
+        <p class="text-gray-400 text-sm mb-4">Search your Komga library to add series to your pull-list</p>
 
-            <form hx-post="/api/series/search" hx-target="#search-results" hx-indicator="#search-spinner">
-                <div class="flex gap-2">
-                    <input
-                        type="text"
-                        name="query"
-                        placeholder="Search series name..."
-                        class="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-comic-yellow"
-                        required
-                    >
-                    <button
-                        type="submit"
-                        class="px-4 py-2 bg-comic-yellow text-gray-900 font-semibold rounded-lg hover:bg-yellow-400 transition-colors inline-flex items-center"
-                    >
-                        <span id="search-spinner" class="htmx-indicator mr-2">
-                            <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        </span>
-                        Search
-                    </button>
-                </div>
-            </form>
-
-            <div id="search-results" class="mt-4">
-                <!-- Search results will be inserted here -->
+        <form hx-post="/api/series/search" hx-target="#search-results" hx-indicator="#search-spinner">
+            <div class="flex gap-2">
+                <input
+                    type="text"
+                    name="query"
+                    placeholder="Search series name..."
+                    class="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-comic-yellow"
+                    required
+                >
+                <button
+                    type="submit"
+                    class="px-4 py-2 bg-comic-yellow text-gray-900 font-semibold rounded-lg hover:bg-yellow-400 transition-colors inline-flex items-center"
+                >
+                    <span id="search-spinner" class="htmx-indicator mr-2">
+                        <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </span>
+                    Search
+                </button>
             </div>
-        </div>
+        </form>
 
-        <!-- Tracked Series -->
-        <div class="bg-gray-800 rounded-lg p-6">
-            <h2 class="text-xl font-semibold text-white mb-4">Tracked Series</h2>
-            <p class="text-gray-400 text-sm mb-4">
-                These series will be included in your weekly pull-list.
-                Toggle to pause tracking without removing.
-            </p>
-
-            <div id="tracked-series-list">
-                {% include "partials/tracked_series_list.html" %}
-            </div>
+        <div id="search-results" class="mt-4">
+            <!-- Search results will be inserted here -->
         </div>
     </div>
 
-    <!-- Browse & Add One-Offs -->
-    <div class="bg-gray-800 rounded-lg p-6">
-        <h2 class="text-xl font-semibold text-white mb-4">Browse Comics (This Week)</h2>
-        <p class="text-gray-400 text-sm mb-4">
-            Add individual issues without tracking the series. One-offs persist across regenerations.
-        </p>
+    <!-- Tabbed Section -->
+    <div class="bg-gray-800 rounded-lg overflow-hidden" x-data="{ activeTab: 'tracked' }">
+        <!-- Tab Buttons -->
+        <div class="flex border-b border-gray-700">
+            <button
+                @click="activeTab = 'tracked'"
+                :class="activeTab === 'tracked' ? 'bg-gray-700 text-white border-b-2 border-comic-yellow' : 'text-gray-400 hover:text-white hover:bg-gray-750'"
+                class="flex-1 px-6 py-4 font-semibold transition-colors"
+            >
+                Tracked Series
+            </button>
+            <button
+                @click="activeTab = 'browse'"
+                :class="activeTab === 'browse' ? 'bg-gray-700 text-white border-b-2 border-comic-yellow' : 'text-gray-400 hover:text-white hover:bg-gray-750'"
+                class="flex-1 px-6 py-4 font-semibold transition-colors"
+            >
+                Browse This Week's Comics
+            </button>
+        </div>
 
-        <button
-            hx-get="/api/week/{{ display_week_id }}/available-books"
-            hx-target="#available-books-container"
-            hx-swap="innerHTML"
-            class="px-4 py-2 bg-comic-yellow text-gray-900 font-semibold rounded-lg hover:bg-yellow-400 transition-colors"
-        >
-            Show Available Comics
-        </button>
+        <!-- Tab Panels -->
+        <div class="p-6">
+            <!-- Tracked Series Tab -->
+            <div x-show="activeTab === 'tracked'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+                <p class="text-gray-400 text-sm mb-4">
+                    These series will be included in your weekly pull-list.
+                    Toggle to pause tracking without removing.
+                </p>
 
-        <div id="available-books-container" class="mt-4"></div>
+                <div id="tracked-series-list">
+                    {% include "partials/tracked_series_list.html" %}
+                </div>
+            </div>
+
+            <!-- Browse Comics Tab -->
+            <div x-show="activeTab === 'browse'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+                <p class="text-gray-400 text-sm mb-4">
+                    Add entire series to your pull-list, or add individual issues as one-offs.
+                </p>
+
+                <div
+                    id="available-books-container"
+                    class="mt-4"
+                    hx-get="/api/week/{{ display_week_id }}/available-books"
+                    hx-trigger="intersect once"
+                    hx-swap="innerHTML"
+                >
+                    <div class="text-center py-8 text-gray-400">
+                        <svg class="animate-spin h-8 w-8 mx-auto mb-2" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Loading comics...
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Schedule Info -->

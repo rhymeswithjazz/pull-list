@@ -586,35 +586,83 @@ async def get_available_books(
     user: User = Depends(get_current_user),
 ):
     """Get all available books for a week (for one-off browsing)."""
+    logger.info(f"Fetching available books for week {week_id}")
     service = PullListService(db)
 
-    # Get books from Komga
-    available_books = await service.get_weekly_books_for_browsing(week_id)
+    try:
+        # Get books from Komga
+        available_books = await service.get_weekly_books_for_browsing(week_id)
+        logger.info(f"Found {len(available_books)} available books")
 
-    # Get already added books
-    weekly_books = await service.get_week_books(week_id)
-    added_book_ids = {wb.komga_book_id for wb in weekly_books}
+        # Get already added books
+        weekly_books = await service.get_week_books(week_id)
+        added_book_ids = {wb.komga_book_id for wb in weekly_books}
 
-    # Build book list
-    book_items = []
-    for book in available_books:
-        book_items.append(
-            {
-                "komga_book_id": book.id,
-                "series_name": book.metadata.get("seriesTitle", book.name),
-                "book_number": book.number,
-                "thumbnail_url": f"/api/proxy/book/{book.id}/thumbnail",
-                "is_added": book.id in added_book_ids,
-                "is_read": book.is_read,
-            }
+        # Get tracked series
+        tracked_series = await service.get_tracked_series()
+        tracked_series_ids = {s.komga_series_id for s in tracked_series}
+
+        # Build book list
+        book_items = []
+        for book in available_books:
+            book_items.append(
+                {
+                    "komga_book_id": book.id,
+                    "komga_series_id": book.series_id,
+                    "series_name": book.metadata.get("seriesTitle", book.name),
+                    "book_number": book.number,
+                    "thumbnail_url": f"/api/proxy/book/{book.id}/thumbnail",
+                    "is_issue_added": book.id in added_book_ids,
+                    "is_series_tracked": book.series_id in tracked_series_ids,
+                    "is_read": book.is_read,
+                }
+            )
+
+        book_items.sort(key=lambda x: (x["series_name"], x["book_number"]))
+
+        context = get_base_context(request, user)
+        context.update({"books": book_items, "week_id": week_id})
+
+        return templates.TemplateResponse("partials/available_books_grid.html", context)
+    except Exception as e:
+        logger.error(f"Error fetching available books: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/series/add-from-book/{book_id}", response_class=HTMLResponse)
+async def add_series_from_book(
+    request: Request,
+    book_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Add a series to tracking from a book in the browse view."""
+    service = PullListService(db)
+
+    try:
+        async with KomgaClient() as komga:
+            book = await komga.get_book_by_id(book_id)
+            series = await komga.get_series_by_id(book.series_id)
+
+        # Check if already tracked
+        existing = await service.get_tracked_series()
+        if any(s.komga_series_id == series.id for s in existing):
+            # Already tracked
+            context = {"request": request, "series_id": series.id, "is_tracked": True}
+            return templates.TemplateResponse("partials/add_series_button.html", context)
+
+        # Add series to tracking
+        await service.add_tracked_series(
+            name=series.name,
+            komga_series_id=series.id,
+            publisher=series.publisher,
         )
 
-    book_items.sort(key=lambda x: (x["series_name"], x["book_number"]))
-
-    context = get_base_context(request, user)
-    context.update({"books": book_items, "week_id": week_id})
-
-    return templates.TemplateResponse("partials/available_books_grid.html", context)
+        context = {"request": request, "series_id": series.id, "is_tracked": True}
+        return templates.TemplateResponse("partials/add_series_button.html", context)
+    except Exception as e:
+        logger.error(f"Error adding series from book {book_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/week/{week_id}/add-book/{book_id}", response_class=HTMLResponse)
@@ -633,8 +681,8 @@ async def add_one_off_book_endpoint(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    context = {"request": request, "book_id": book_id, "is_added": True}
-    return templates.TemplateResponse("partials/add_book_button.html", context)
+    context = {"request": request, "book_id": book_id, "week_id": week_id, "is_added": True}
+    return templates.TemplateResponse("partials/add_issue_button.html", context)
 
 
 @app.post("/api/book/{book_id}/promote-to-tracked", response_class=HTMLResponse)
@@ -677,6 +725,26 @@ async def promote_one_off_endpoint(
     }
 
     return templates.TemplateResponse("partials/book_card.html", context)
+
+
+@app.delete("/api/book/{book_id}/remove-one-off", response_class=HTMLResponse)
+async def remove_one_off_endpoint(
+    request: Request,
+    book_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Remove a one-off book from the pull-list."""
+    service = PullListService(db)
+    current_week_id = get_current_week_id()
+
+    try:
+        await service.remove_one_off_book(current_week_id, book_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Return empty response - the book card will be removed from the DOM
+    return ""
 
 
 @app.get("/health")

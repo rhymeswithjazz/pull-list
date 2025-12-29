@@ -30,10 +30,19 @@
 
             <!-- Delete button -->
             <button
-                hx-delete="/api/series/{{ series.id }}"
-                hx-target="#tracked-series-list"
-                hx-swap="innerHTML"
-                hx-confirm="Remove '{{ series.name }}' from tracking?"
+                @click="async (e) => {
+                    const confirmed = await showConfirm({
+                        title: 'Remove Series',
+                        message: 'Remove \'{{ series.name|replace("'", "\\'") }}\' from tracking?',
+                        confirmText: 'Remove'
+                    });
+                    if (confirmed) {
+                        htmx.ajax('DELETE', '/api/series/{{ series.id }}', {
+                            target: '#tracked-series-list',
+                            swap: 'innerHTML'
+                        });
+                    }
+                }"
                 class="p-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition-colors"
                 title="Remove from tracking"
             >
