@@ -333,6 +333,20 @@ class PullListService:
                     # Mylar connection is optional
                     pass
 
+                # Get existing one-off books for this week and add to readlist
+                one_off_result = await self.db.execute(
+                    select(WeeklyBook).where(
+                        WeeklyBook.week_id == week_id,
+                        WeeklyBook.tracked_series_id.is_(None),
+                    )
+                )
+                one_off_books = one_off_result.scalars().all()
+
+                # Add one-off book IDs to the readlist
+                for one_off in one_off_books:
+                    if one_off.komga_book_id not in komga_book_ids:
+                        komga_book_ids.append(one_off.komga_book_id)
+
                 # Create Komga readlist if requested and we have books
                 readlist_id = None
                 readlist_name = None
