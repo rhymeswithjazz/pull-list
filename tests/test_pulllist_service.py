@@ -287,7 +287,7 @@ class TestGeneratePulllistWithBooks:
         mock_komga.create_readlist.assert_called_once()
 
     async def test_deletes_existing_readlist_before_creating(self, mock_db):
-        """Should delete existing readlist with same name before creating new one."""
+        """Should update existing readlist with same name instead of recreating."""
         tracked_series = [
             make_mock_tracked_series(1, "series-1", "Spider-Man"),
         ]
@@ -314,9 +314,9 @@ class TestGeneratePulllistWithBooks:
             mock_komga.get_book_read_url = MagicMock(return_value="http://localhost/read")
             # Return existing readlist
             mock_komga.find_readlist_by_name = AsyncMock(
-                return_value={"id": "old-readlist", "name": "Pull List - 2024-W48"}
+                return_value={"id": "existing-readlist", "name": "Pull List - 2024-W48"}
             )
-            mock_komga.delete_readlist = AsyncMock()
+            mock_komga.update_readlist = AsyncMock(return_value={"id": "existing-readlist"})
             mock_komga.create_readlist = AsyncMock(return_value={"id": "new-readlist"})
             mock_komga_cls.return_value.__aenter__.return_value = mock_komga
 
@@ -328,11 +328,10 @@ class TestGeneratePulllistWithBooks:
                 service = PullListService(mock_db)
                 result = await service.generate_pulllist(create_readlist=True)
 
-        # Should have deleted old readlist
-        mock_komga.delete_readlist.assert_called_once_with("old-readlist")
-        # Should have created new readlist
-        mock_komga.create_readlist.assert_called_once()
-        assert result.readlist_id == "new-readlist"
+        # Should have updated existing readlist, not deleted or created new one
+        mock_komga.update_readlist.assert_called_once()
+        mock_komga.create_readlist.assert_not_called()
+        assert result.readlist_id == "existing-readlist"
 
     async def test_skips_readlist_when_disabled(self, mock_db):
         """Should not create readlist when create_readlist=False."""
