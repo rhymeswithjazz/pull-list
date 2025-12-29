@@ -94,6 +94,13 @@ class WeeklyBook(Base):
     # Status
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # Link to tracked series (NULL if one-off)
+    tracked_series_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("tracked_series.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     # Mylar info (if matched)
     mylar_issue_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     release_date: Mapped[str | None] = mapped_column(String(20), nullable=True)

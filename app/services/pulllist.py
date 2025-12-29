@@ -226,8 +226,13 @@ class PullListService:
             pull_list_items: list[PullListItem] = []
             komga_book_ids: list[str] = []
 
-            # Clear existing weekly books for this week to ensure we only keep currently tracked series
-            await self.db.execute(delete(WeeklyBook).where(WeeklyBook.week_id == week_id))
+            # Clear only tracked series books, preserve one-offs
+            await self.db.execute(
+                delete(WeeklyBook).where(
+                    WeeklyBook.week_id == week_id,
+                    WeeklyBook.tracked_series_id.isnot(None),
+                )
+            )
             await self.db.commit()
 
             async with KomgaClient() as komga:
@@ -282,6 +287,7 @@ class PullListService:
                                 book_number=book.number,
                                 book_title=book.title,
                                 is_read=book.is_read,
+                                tracked_series_id=series.id,
                             )
                             self.db.add(weekly_book)
 
@@ -466,3 +472,84 @@ class PullListService:
         )
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
+
+    async def get_weekly_books_for_browsing(self, week_id: str, days_back: int = 7) -> list:
+        """Get all books from Komga for the week (for one-off browsing)."""
+        week_start = get_week_start_date(week_id)
+        cutoff_date = week_start - timedelta(days=days_back)
+
+        async with KomgaClient() as komga:
+            all_books = await komga.get_latest_books(size=500)
+            return [b for b in all_books if b.created_date >= cutoff_date]
+
+    async def add_one_off_book(self, week_id: str, komga_book_id: str) -> WeeklyBook:
+        """Add a one-off book to the weekly pull-list."""
+        # Check if already exists
+        existing = await self.db.execute(
+            select(WeeklyBook).where(
+                WeeklyBook.week_id == week_id,
+                WeeklyBook.komga_book_id == komga_book_id,
+            )
+        )
+        if existing.scalar_one_or_none():
+            raise ValueError("Book already in pull-list")
+
+        # Fetch from Komga and create entry
+        async with KomgaClient() as komga:
+            book = await komga.get_book_by_id(komga_book_id)
+            series = await komga.get_series_by_id(book.series_id)
+
+        weekly_book = WeeklyBook(
+            week_id=week_id,
+            komga_book_id=book.id,
+            komga_series_id=book.series_id,
+            series_name=series.name,
+            book_number=book.number,
+            book_title=book.title,
+            is_read=book.is_read,
+            tracked_series_id=None,  # NULL = one-off
+        )
+
+        self.db.add(weekly_book)
+        await self.db.commit()
+        await self.db.refresh(weekly_book)
+        return weekly_book
+
+    async def promote_one_off_to_tracked(self, week_id: str, komga_book_id: str) -> TrackedSeries:
+        """Promote a one-off book to a tracked series."""
+        # Get the one-off book
+        result = await self.db.execute(
+            select(WeeklyBook).where(
+                WeeklyBook.week_id == week_id,
+                WeeklyBook.komga_book_id == komga_book_id,
+                WeeklyBook.tracked_series_id.is_(None),
+            )
+        )
+        weekly_book = result.scalar_one_or_none()
+        if not weekly_book:
+            raise ValueError("Book not found or already tracked")
+
+        # Check if series already tracked
+        existing = await self.db.execute(
+            select(TrackedSeries).where(
+                TrackedSeries.komga_series_id == weekly_book.komga_series_id
+            )
+        )
+        series = existing.scalar_one_or_none()
+
+        if not series:
+            # Create new tracked series
+            async with KomgaClient() as komga:
+                komga_series = await komga.get_series_by_id(weekly_book.komga_series_id)
+
+            series = await self.add_tracked_series(
+                name=komga_series.name,
+                komga_series_id=komga_series.id,
+                publisher=komga_series.publisher,
+            )
+
+        # Update book to link to tracked series
+        weekly_book.tracked_series_id = series.id
+        await self.db.commit()
+
+        return series

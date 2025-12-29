@@ -1,0 +1,41 @@
+{% if books %}
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 max-h-[600px] overflow-y-auto p-2">
+    {% for book in books %}
+    <div class="bg-gray-700 rounded-lg overflow-hidden shadow-lg flex flex-col">
+        <div class="relative aspect-[2/3]">
+            <img
+                src="{{ book.thumbnail_url }}"
+                alt="{{ book.series_name }} #{{ book.book_number }}"
+                class="w-full h-full object-cover"
+                loading="lazy"
+            >
+            {% if book.is_read %}
+            <div class="absolute top-2 right-2">
+                <span class="px-2 py-0.5 text-xs font-medium bg-green-600 text-white rounded-full">Read</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="p-2 flex flex-col flex-grow">
+            <h3 class="text-xs font-semibold text-white truncate">{{ book.series_name }}</h3>
+            <p class="text-xs text-gray-400">#{{ book.book_number }}</p>
+
+            <div class="mt-2" id="add-button-{{ book.komga_book_id }}">
+                {% if book.is_added %}
+                <button disabled class="w-full px-2 py-1 text-xs bg-gray-600 text-gray-400 rounded">Added</button>
+                {% else %}
+                <button
+                    hx-post="/api/week/{{ week_id }}/add-book/{{ book.komga_book_id }}"
+                    hx-target="#add-button-{{ book.komga_book_id }}"
+                    hx-swap="innerHTML"
+                    class="w-full px-2 py-1 text-xs bg-comic-yellow text-gray-900 rounded hover:bg-yellow-400"
+                >Add</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p class="text-gray-400 text-center py-8">No comics available for this week</p>
+{% endif %}
