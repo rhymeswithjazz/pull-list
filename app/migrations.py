@@ -67,38 +67,23 @@ async def add_is_one_off_column(db: AsyncSession) -> None:
         else:
             logger.info("is_one_off column already exists")
 
-        # Always check if values need to be populated (handles case where column
-        # was added but values weren't populated, e.g., from a partial migration)
+        # TEMPORARY: Force populate values on every startup to fix production
+        # TODO: Remove this after confirming production is fixed
+        logger.info("Force updating all is_one_off values...")
         result = await db.execute(
             text(
                 """
-                SELECT COUNT(*) FROM weekly_books
-                WHERE (tracked_series_id IS NULL AND is_one_off = 0)
-                   OR (tracked_series_id IS NOT NULL AND is_one_off = 1)
+                UPDATE weekly_books
+                SET is_one_off = CASE
+                    WHEN tracked_series_id IS NULL THEN 1
+                    ELSE 0
+                END
                 """
             )
         )
-        inconsistent_count = result.scalar()
-
-        if inconsistent_count > 0 or not column_exists:
-            logger.info(
-                f"Populating is_one_off values ({inconsistent_count} inconsistent records found)..."
-            )
-            await db.execute(
-                text(
-                    """
-                    UPDATE weekly_books
-                    SET is_one_off = CASE
-                        WHEN tracked_series_id IS NULL THEN 1
-                        ELSE 0
-                    END
-                    """
-                )
-            )
-            await db.commit()
-            logger.info("Successfully populated is_one_off values")
-        else:
-            logger.info("is_one_off values are already correct, skipping population")
+        updated_count = result.rowcount
+        await db.commit()
+        logger.info(f"Force updated {updated_count} records")
     except Exception as e:
         logger.error(f"Migration failed: {e}")
         await db.rollback()
