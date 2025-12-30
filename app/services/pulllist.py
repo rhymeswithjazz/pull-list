@@ -288,6 +288,7 @@ class PullListService:
                                 book_title=book.title,
                                 is_read=book.is_read,
                                 tracked_series_id=series.id,
+                                is_one_off=False,
                             )
                             self.db.add(weekly_book)
 
@@ -531,6 +532,7 @@ class PullListService:
             book_title=book.title,
             is_read=book.is_read,
             tracked_series_id=None,  # NULL = one-off
+            is_one_off=True,
         )
 
         self.db.add(weekly_book)
@@ -573,6 +575,7 @@ class PullListService:
 
         # Update book to link to tracked series
         weekly_book.tracked_series_id = series.id
+        weekly_book.is_one_off = False
         await self.db.commit()
 
         return series

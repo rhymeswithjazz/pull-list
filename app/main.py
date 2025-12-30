@@ -165,7 +165,7 @@ async def dashboard(
                 "thumbnail_url": f"/api/proxy/book/{book.komga_book_id}/thumbnail",
                 "read_url": f"{settings.komga_url}/book/{book.komga_book_id}/read",
                 "komga_book_id": book.komga_book_id,
-                "is_one_off": book.tracked_series_id is None,
+                "is_one_off": book.is_one_off,
             }
         )
 
@@ -239,7 +239,7 @@ async def run_now(
                 "thumbnail_url": f"/api/proxy/book/{book.komga_book_id}/thumbnail",
                 "read_url": f"{settings.komga_url}/book/{book.komga_book_id}/read",
                 "komga_book_id": book.komga_book_id,
-                "is_one_off": book.tracked_series_id is None,
+                "is_one_off": book.is_one_off,
             }
         )
 
@@ -720,7 +720,7 @@ async def promote_one_off_endpoint(
             "thumbnail_url": f"/api/proxy/book/{book_id}/thumbnail",
             "read_url": f"{settings.komga_url}/book/{book_id}/read",
             "komga_book_id": book_id,
-            "is_one_off": False,  # Now tracked
+            "is_one_off": weekly_book.is_one_off,
         },
     }
 
