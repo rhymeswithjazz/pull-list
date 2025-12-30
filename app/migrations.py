@@ -51,7 +51,9 @@ async def add_is_one_off_column(db: AsyncSession) -> None:
         columns = result.fetchall()
         column_names = [col[1] for col in columns]
 
-        if "is_one_off" not in column_names:
+        column_exists = "is_one_off" in column_names
+
+        if not column_exists:
             logger.info("Adding is_one_off column to weekly_books table...")
             await db.execute(
                 text(
@@ -62,9 +64,26 @@ async def add_is_one_off_column(db: AsyncSession) -> None:
                 )
             )
             logger.info("Successfully added is_one_off column")
+        else:
+            logger.info("is_one_off column already exists")
 
-            # Populate the column based on tracked_series_id
-            logger.info("Populating is_one_off values...")
+        # Always check if values need to be populated (handles case where column
+        # was added but values weren't populated, e.g., from a partial migration)
+        result = await db.execute(
+            text(
+                """
+                SELECT COUNT(*) FROM weekly_books
+                WHERE (tracked_series_id IS NULL AND is_one_off = 0)
+                   OR (tracked_series_id IS NOT NULL AND is_one_off = 1)
+                """
+            )
+        )
+        inconsistent_count = result.scalar()
+
+        if inconsistent_count > 0 or not column_exists:
+            logger.info(
+                f"Populating is_one_off values ({inconsistent_count} inconsistent records found)..."
+            )
             await db.execute(
                 text(
                     """
@@ -79,7 +98,7 @@ async def add_is_one_off_column(db: AsyncSession) -> None:
             await db.commit()
             logger.info("Successfully populated is_one_off values")
         else:
-            logger.info("is_one_off column already exists, skipping migration")
+            logger.info("is_one_off values are already correct, skipping population")
     except Exception as e:
         logger.error(f"Migration failed: {e}")
         await db.rollback()
