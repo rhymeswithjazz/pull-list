@@ -63,23 +63,10 @@ async def add_is_one_off_column(db: AsyncSession) -> None:
                     """
                 )
             )
+            await db.commit()
             logger.info("Successfully added is_one_off column")
         else:
-            logger.info("is_one_off column already exists")
-
-        # One-time fix: Set all books to is_one_off = False
-        # Check if any books have is_one_off = True (need fixing)
-        result = await db.execute(text("SELECT COUNT(*) FROM weekly_books WHERE is_one_off = 1"))
-        needs_fix = result.scalar() > 0
-
-        if needs_fix or not column_exists:
-            logger.info("Setting all books to is_one_off = False...")
-            result = await db.execute(text("UPDATE weekly_books SET is_one_off = 0"))
-            updated_count = result.rowcount
-            await db.commit()
-            logger.info(f"Set {updated_count} books to is_one_off = False")
-        else:
-            logger.info("All books already have is_one_off = False, skipping")
+            logger.info("is_one_off column already exists, skipping migration")
     except Exception as e:
         logger.error(f"Migration failed: {e}")
         await db.rollback()
