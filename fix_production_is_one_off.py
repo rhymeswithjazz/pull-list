@@ -48,10 +48,10 @@ async def fix_is_one_off():
         )
         tracked = result.scalar()
 
-        print(f"\nResults:")
+        print("\nResults:")
         print(f"  One-off books: {one_offs}")
         print(f"  Tracked series books: {tracked}")
-        print(f"\n✓ Fix complete!")
+        print("\n✓ Fix complete!")
 
 
 if __name__ == "__main__":

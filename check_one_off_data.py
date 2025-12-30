@@ -3,7 +3,7 @@
 
 import asyncio
 
-from sqlalchemy import select, text
+from sqlalchemy import select
 
 from app.database import async_session, init_db
 from app.models import WeeklyBook
@@ -55,7 +55,7 @@ async def check_data():
         # Also show stats
         one_offs = sum(1 for book in books if book.is_one_off)
         tracked = sum(1 for book in books if not book.is_one_off)
-        print(f"\nStats:")
+        print("\nStats:")
         print(f"  One-off books: {one_offs}")
         print(f"  Tracked series books: {tracked}")
 
