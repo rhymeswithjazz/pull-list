@@ -93,6 +93,7 @@ class WeeklyBook(Base):
 
     # Status
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_one_off: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Link to tracked series (NULL if one-off)
     tracked_series_id: Mapped[int | None] = mapped_column(
