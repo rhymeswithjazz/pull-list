@@ -67,23 +67,19 @@ async def add_is_one_off_column(db: AsyncSession) -> None:
         else:
             logger.info("is_one_off column already exists")
 
-        # TEMPORARY: Force populate values on every startup to fix production
-        # TODO: Remove this after confirming production is fixed
-        logger.info("Force updating all is_one_off values...")
-        result = await db.execute(
-            text(
-                """
-                UPDATE weekly_books
-                SET is_one_off = CASE
-                    WHEN tracked_series_id IS NULL THEN 1
-                    ELSE 0
-                END
-                """
-            )
-        )
-        updated_count = result.rowcount
-        await db.commit()
-        logger.info(f"Force updated {updated_count} records")
+        # One-time fix: Set all books to is_one_off = False
+        # Check if any books have is_one_off = True (need fixing)
+        result = await db.execute(text("SELECT COUNT(*) FROM weekly_books WHERE is_one_off = 1"))
+        needs_fix = result.scalar() > 0
+
+        if needs_fix or not column_exists:
+            logger.info("Setting all books to is_one_off = False...")
+            result = await db.execute(text("UPDATE weekly_books SET is_one_off = 0"))
+            updated_count = result.rowcount
+            await db.commit()
+            logger.info(f"Set {updated_count} books to is_one_off = False")
+        else:
+            logger.info("All books already have is_one_off = False, skipping")
     except Exception as e:
         logger.error(f"Migration failed: {e}")
         await db.rollback()
