@@ -67,38 +67,19 @@ async def add_is_one_off_column(db: AsyncSession) -> None:
         else:
             logger.info("is_one_off column already exists")
 
-        # Always check if values need to be populated (handles case where column
-        # was added but values weren't populated, e.g., from a partial migration)
-        result = await db.execute(
-            text(
-                """
-                SELECT COUNT(*) FROM weekly_books
-                WHERE (tracked_series_id IS NULL AND is_one_off = 0)
-                   OR (tracked_series_id IS NOT NULL AND is_one_off = 1)
-                """
-            )
-        )
-        inconsistent_count = result.scalar()
+        # One-time fix: Set all books to is_one_off = False
+        # Check if any books have is_one_off = True (need fixing)
+        result = await db.execute(text("SELECT COUNT(*) FROM weekly_books WHERE is_one_off = 1"))
+        needs_fix = result.scalar() > 0
 
-        if inconsistent_count > 0 or not column_exists:
-            logger.info(
-                f"Populating is_one_off values ({inconsistent_count} inconsistent records found)..."
-            )
-            await db.execute(
-                text(
-                    """
-                    UPDATE weekly_books
-                    SET is_one_off = CASE
-                        WHEN tracked_series_id IS NULL THEN 1
-                        ELSE 0
-                    END
-                    """
-                )
-            )
+        if needs_fix or not column_exists:
+            logger.info("Setting all books to is_one_off = False...")
+            result = await db.execute(text("UPDATE weekly_books SET is_one_off = 0"))
+            updated_count = result.rowcount
             await db.commit()
-            logger.info("Successfully populated is_one_off values")
+            logger.info(f"Set {updated_count} books to is_one_off = False")
         else:
-            logger.info("is_one_off values are already correct, skipping population")
+            logger.info("All books already have is_one_off = False, skipping")
     except Exception as e:
         logger.error(f"Migration failed: {e}")
         await db.rollback()

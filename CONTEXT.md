@@ -119,7 +119,7 @@ pull-list/
    - Optionally queries Mylar for upcoming releases
    - Creates Komga readlist with found books
    - Stores results in `weekly_books` and `pulllist_runs` tables
-3. **Dashboard Display**: 
+3. **Dashboard Display**:
    - Reads from `weekly_books` table
    - Fetches fresh read progress from Komga API
    - Shows cover grid with status badges and progress bars
